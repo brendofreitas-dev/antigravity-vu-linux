@@ -9,11 +9,12 @@ Este documento traça o planejamento estratégico e a evolução do projeto **An
 ```mermaid
 flowchart LR
     v10["v1.0.0<br/>• Dynamic Island GNOME<br/>• Quotas ConnectRPC<br/>• Swarm Tracker<br/>• CLI ag-vu"]
-    v11["v1.1.0 (Atual)<br/>• Unified Dynamic Island<br/>• Tema Ubuntu Light/Dark<br/>• Painel Prefs GTK4/Adw<br/>• Alertas de Cota Crítica<br/>• Gráficos Sparkline Cairo"]
-    v12["v1.2.0 (Q2 2027)<br/>• Overlay Wayland Puro<br/>• Suporte a Hyprland/KDE<br/>• Exportador Prometheus"]
+    v11["v1.1.0 – v1.2.3<br/>• Unified Island & Theme<br/>• Active Model Auto Quota<br/>• Transparent Calendar Popup"]
+    v13["v1.3.0 (Atual) ✅<br/>• Simplificação 2 Estágios<br/>• Legenda de Cores<br/>• Hover Retângulo Arredondado"]
+    v14["v1.4.0 (Q1 2027)<br/>• Painel Prefs GTK4/Adw<br/>• Alertas de Cota Crítica<br/>• Gráficos Sparkline Cairo"]
     v20["v2.0.0 (Q3 2027)<br/>• Multi-Account Switcher<br/>• Estimador de Custos<br/>• Histórico Anual SQLite"]
 
-    v10 --> v11 --> v12 --> v20
+    v10 --> v11 --> v13 --> v14 --> v20
 ```
 
 ---
@@ -39,7 +40,16 @@ flowchart LR
 - [x] **Adaptive Ubuntu System Theme (Light/Dark)** com cores de acento Yaru/Adwaita.
 - [x] Fix do `PopupMenu` (colapso de altura no GNOME 50).
 
-### [v1.2.0-pre] — Experiência do Usuário & Alertas Nativos 🎯 (adiado da 1.1)
+### [v1.3.0] — Refinamento de UX & Simplificação da Dynamic Island ✅ (2026-11-12)
+- [x] **Simplificação para 2 Estágios**: remoção do hover expansivo na Top Bar para um indicador estável, limpo e direto.
+- [x] **Automação Completa da Cota Primária**: remoção dos botões manuais `📌 Fixar`; a Top Bar acompanha dinamicamente o modelo em uso na IDE.
+- [x] **Retângulo com Cantos Arredondados no Hover**: transição do formato oval para retângulo arredondado (`border-radius: 8px`), alinhado ao padrão dos botões da Top Bar do Ubuntu Yaru.
+- [x] **Legenda de Cores no Dashboard**: inclusão de componente `.ag-color-legend` com significado das cores Verde, Âmbar, Vermelho e Azul.
+- [x] **Visual Translúcido Calendar**: herança direta de `.popup-menu-content` nativo sem caixas rígidas.
+
+---
+
+### [v1.4.0] — Experiência do Usuário & Alertas Nativos 🎯 (Q1 2027)
 - [ ] **Interface Gráfica de Configuração (`prefs.js`)**:
   - Diálogo nativo em GTK4 / Libadwaita integrado ao aplicativo *Extensões* do GNOME.
   - Seleção visual do grupo de cota fixado na pílula.

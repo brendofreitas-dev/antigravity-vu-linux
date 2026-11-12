@@ -146,25 +146,22 @@ Main.panel.addToStatusArea(this.uuid, this._indicator, 1, 'center');
 - **Regra de tema**: `prefer-light` → Light; `prefer-dark` → Dark; `gtk-theme` (`-dark`) só quando `color-scheme` = `default`. Também escuta `St.ThemeContext` `changed`. Paleta Yaru neutra (Dark `#36363a`/cards `#2a2a2e`; Light `#ffffff`/cards `#f4f4f6`).
 - **Estilo System Tray Nativo (v1.2.2)**: Em repouso, a cápsula unificada é 100% transparente no painel. Ao passar o mouse, adota o realce nativo do Ubuntu Yaru (`box-shadow: inset 0 0 0 100px rgba(255, 255, 255, 0.17)` com `border: 3px solid transparent`), sem sombras cinzas externas ou bordas estáticas.
 
-### 4.3. Os Três Estágios da Dynamic Island
+### 4.3. Os Dois Estágios da Dynamic Island (v1.3.0)
+
+A partir da versão **v1.3.0**, a interface foi simplificada para **dois estágios essenciais**, eliminando transições expansivas na Top Bar para máxima estabilidade visual:
 
 ```
 +-------------------------------------------------------------+
-| ESTÁGIO 1: Pílula Fechada (28px de altura)                  |
-|   [ (●) Argon 31.4% ]                                       |
-+-------------------------------------------------------------+
-                                │
-                  Hover / Evento de Atividade
-                                ▼
-+-------------------------------------------------------------+
-| ESTÁGIO 2: Expansão Dinâmica (Morphing 200ms)               |
-|   [ (●) Argon 31.4%  │  Ctx: 48.2k  •  ⚡ 3 ag ]            |
+| ESTÁGIO 1: Pílula Estável na Top Bar                        |
+|   [ 12 de nov 17:30  │  (●) 4 Hydrogen 48% ]                |
+|   - Repouso: 100% transparente                              |
+|   - Hover: retângulo com cantos arredondados (8px) Yaru     |
 +-------------------------------------------------------------+
                                 │
                           Clique do Usuário
                                 ▼
 +-------------------------------------------------------------+
-| ESTÁGIO 3: Dashboard Glassmorphism (PopupMenu)              |
+| ESTÁGIO 2: Dashboard Glassmorphism (PopupMenu)              |
 |                                                             |
 |   ANTIGRAVITY VIEW USAGE                Pro [ONLINE] [ ↻ ]  |
 |   ───────────────────────────────────────────────────────   |
@@ -172,6 +169,9 @@ Main.panel.addToStatusArea(this.uuid, this._indicator, 1, 'center');
 |     Gemini 4 Argon     [████░░░░░░]  31.4%   Reset: 3d 5h   |
 |     Gemini Models      [███████░░░]  64.3%   Reset: 3d 5h   |
 |     Claude & GPT (3P)  [██████████] 100.0%   Reset: 6d 23h  |
+|                                                             |
+|   LEGENDA DE CORES                                          |
+|     ● ≥50% Normal  ● 20-49% Atenção  ● <20% Crítico  ● Ativo|
 |                                                             |
 |   CONTEXTO & SWARM ATIVO                                    |
 |     Projeto: antigravity-vU-linux     Ctx Total: 48.2k      |

@@ -7,6 +7,36 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ---
 
+## [1.3.0] - 2026-11-12
+
+### Removido
+- **Botão manual de fixar modelo (`📌 Fixar`)**:
+  - Removidos os botões `📌 Fixar` / `📌 Fixado` dos cartões do dashboard e o parâmetro `pinned_group` da extensão.
+  - A Top Bar agora opera de forma **100% automática**, acompanhando dinamicamente o modelo ativo detectado pelo coletor (`ag-vu --json`).
+- **Etapa 2 da Dynamic Island (Hover / Auto-peek de contexto e agentes na Top Bar)**:
+  - Eliminado o morphing expansivo que exibia contexto e swarm na Top Bar ao passar o cursor ou ao iniciar agentes.
+  - A barra superior agora permanece limpa, estável e livre de distrações (`Data/Hora  ● Modelo XX%`).
+
+### Adicionado
+- **Legenda visual de cores no Dashboard (`.ag-color-legend`)**:
+  - Nova legenda compacta exibindo o significado de cada cor de status do indicador:
+    - 🟢 `● ≥50% Normal` (Quota Saudável)
+    - 🟠 `● 20-49% Atenção` (Quota Moderada)
+    - 🔴 `● <20% Crítico` (Quota Baixa)
+    - 🔵 `● Agente Ativo` (Agentes em execução no Swarm)
+
+### Alterado
+- **Retângulo com cantos suavemente arredondados no hover**:
+  - A cápsula da Top Bar substituiu o formato oval (`border-radius: 999px`) por um retângulo suavemente arredondado (`border-radius: 8px`), alinhado ao padrão oficial do Ubuntu System Tray.
+  - No hover, ativa o realce sutil do Ubuntu (`box-shadow: inset 0 0 0 100px rgba(255, 255, 255, 0.14)`), mantendo repouso 100% transparente.
+- **Simplificação para 2 estágios essenciais**:
+  - Estágio 1: Pílula Estável na Top Bar (Data/Hora unificada ao modelo ativo).
+  - Estágio 2: Dashboard Completo Glassmorphism translúcido ao clicar.
+- **Versão atualizada**:
+  - `extension/metadata.json` atualizado para `version: 7` e `version-name: "1.3.0"`.
+
+---
+
 ## [1.2.3] - 2026-11-12
 
 ### Adicionado

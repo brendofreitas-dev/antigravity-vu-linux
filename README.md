@@ -36,13 +36,18 @@
 
 ---
 
-## 📸 Os 3 Estágios da Dynamic Island
+## 📸 Os 2 Estágios da Dynamic Island
 
 | Estágio | Comportamento | Visual |
 | :--- | :--- | :--- |
-| **1. Pílula Fechada** | Cápsula única (28px) com data/hora nativas, dot de status (verde/âmbar/vermelho) e porcentagem da quota principal. | `[ 12 de nov 12:15 │ ● 4 Argon 26% ]` |
-| **2. Expansão Dinâmica** | Ao passar o cursor ou quando agentes iniciam trabalho, expande suavemente exibindo contexto e agentes ativos. | `[ ● Argon 31.4% │ Ctx: 48.2k • ⚡ 3 ag ]` |
-| **3. Dashboard Completo** | Ao clicar, abre o menu suspenso em estilo Glassmorphism (Light/Dark conforme o sistema) com barras de progresso, breakdown de tokens e lista de agentes. | *(Popup expansivo de alta densidade informativa)* |
+| **1. Pílula Estável na Top Bar** | Cápsula única (28px) com data/hora nativas, dot indicador de saúde e cota do modelo ativo no momento. No hover, ganha realce sutil em retângulo com cantos arredondados (padrão Ubuntu System Tray). | `[ 12 de nov 17:30 │ ● 4 Hydrogen 48% ]` |
+| **2. Dashboard Completo** | Ao clicar, abre o menu suspenso translúcido nativo (estilo Calendar do Ubuntu) com barras de progresso, legenda de cores, métricas de contexto, swarm ativo e histórico de tokens. | *(Popup expansivo de alta densidade informativa)* |
+
+### 🎨 Significado das Cores do Indicador
+- 🟢 **Verde (`#22c55e`)**: Quota Normal / Saudável (`≥ 50%`)
+- 🟠 **Âmbar (`#f59e0b`)**: Quota em Atenção (`20% – 49%`)
+- 🔴 **Vermelho (`#ef4444`)**: Quota Crítica (`< 20%`)
+- 🔵 **Azul (`#38bdf8`)**: Agentes Trabalhando (`Swarm Ativo`)
 
 ---
 
