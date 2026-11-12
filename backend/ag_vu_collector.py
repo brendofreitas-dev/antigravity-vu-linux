@@ -234,8 +234,75 @@ class AntigravityCollector:
     # ------------------------------------------------------------------
     # Quota Transformation
     # ------------------------------------------------------------------
+    def detect_active_model(
+        self, active_cid: str, parent_cid: Optional[str] = None
+    ) -> Tuple[Optional[str], Optional[str], Optional[str]]:
+        """
+        Detect currently active AI model from SQLite conversations/<id>.db
+        (gen_metadata protobuf blobs) or antigravity_state.pbtxt.
+        Returns: (model_id, model_label, group_id)
+        """
+        candidates = [active_cid]
+        if parent_cid and parent_cid != active_cid:
+            candidates.append(parent_cid)
+
+        for cid in candidates:
+            if not cid:
+                continue
+            db_path = self.gemini_dir / "conversations" / f"{cid}.db"
+            if not db_path.exists():
+                continue
+            try:
+                uri = f"file:{db_path.resolve()}?mode=ro"
+                con = sqlite3.connect(uri, uri=True, timeout=1.0)
+                cur = con.cursor()
+                cur.execute("SELECT idx, data FROM gen_metadata ORDER BY idx DESC LIMIT 30")
+                for _, data in cur.fetchall():
+                    if not data:
+                        continue
+                    matches = re.findall(
+                        rb"\xaa\x01([\x01-\x7f])((?:Gemini|Claude|GPT-)[A-Za-z0-9 ._()-]{3,40})",
+                        data,
+                    )
+                    for length_b, text_b in matches:
+                        length = length_b[0]
+                        clean_label = text_b[:length].decode("utf-8", errors="ignore").strip()
+                        if clean_label:
+                            con.close()
+                            slug = re.sub(r"[^a-z0-9.]+", "-", clean_label.lower()).strip("-")
+                            lower_label = clean_label.lower()
+                            if "argon" in lower_label:
+                                group_id = "argon"
+                            elif "claude" in lower_label or "gpt" in lower_label:
+                                group_id = "3p"
+                            else:
+                                group_id = "gemini"
+                            return slug, clean_label, group_id
+                con.close()
+            except Exception:
+                pass
+
+        # Fallback to antigravity_state.pbtxt if available
+        state_file = self.gemini_dir / "antigravity_state.pbtxt"
+        if state_file.exists():
+            try:
+                with open(state_file, "r", encoding="utf-8") as f:
+                    for line in f:
+                        if "last_selected_agent_model" in line:
+                            val = line.split(":")[-1].strip().strip('"')
+                            if val:
+                                return val, val, "gemini"
+            except Exception:
+                pass
+
+        return None, None, None
+
     def transform_quota_groups(
-        self, quota_raw: Optional[Dict[str, Any]], pinned_group_pref: str = "auto"
+        self,
+        quota_raw: Optional[Dict[str, Any]],
+        pinned_group_pref: str = "auto",
+        active_model_group: Optional[str] = None,
+        active_model_label: Optional[str] = None,
     ) -> Tuple[Dict[str, Any], List[Dict[str, Any]]]:
         """Transform raw RPC quota payload into structured groups and primary quota."""
         groups_out: List[Dict[str, Any]] = []
@@ -294,6 +361,7 @@ class AntigravityCollector:
 
         lowest_bucket = None
         pinned_candidate = None
+        active_candidate = None
 
         for grp in quota_raw.get("groups", []):
             raw_name = grp.get("displayName", "Unknown")
@@ -340,6 +408,15 @@ class AntigravityCollector:
                 if lowest_bucket is None or rem_pct < lowest_bucket["remaining_pct"]:
                     lowest_bucket = candidate
 
+                # Active model candidate tracking
+                if active_model_group and g_id == active_model_group:
+                    if active_candidate is None:
+                        active_candidate = candidate
+                    elif rem_pct < active_candidate["remaining_pct"]:
+                        active_candidate = candidate
+                    elif rem_pct == active_candidate["remaining_pct"] and b_window == "5h":
+                        active_candidate = candidate
+
                 # Exact ID match takes top priority, fallback to substring if not yet matched
                 is_exact_match = (pinned_group_pref.lower() == g_id.lower())
                 is_sub_match = (pinned_group_pref.lower() in g_name.lower()) or (pinned_group_pref.lower() in g_pill.lower())
@@ -364,7 +441,24 @@ class AntigravityCollector:
                 "buckets": buckets_out,
             })
 
-        selected = pinned_candidate if (pinned_candidate is not None) else lowest_bucket
+        # Selection priority:
+        # 1. If pinned_group is explicitly chosen (not "auto"), use pinned_candidate.
+        # 2. If "auto" and active_candidate is found, use active_candidate!
+        # 3. Fallback to lowest_bucket.
+        if pinned_group_pref != "auto" and pinned_candidate is not None:
+            selected = pinned_candidate
+        elif pinned_group_pref == "auto" and active_candidate is not None:
+            selected = dict(active_candidate)
+            # Refine pill label according to active model
+            if active_model_label and "hydrogen" in active_model_label.lower():
+                selected["group"] = "4\u00a0Hydrogen"
+            elif active_model_label and "flash" in active_model_label.lower():
+                selected["group"] = "Gemini\u00a03.8"
+            elif active_model_label and "argon" in active_model_label.lower():
+                selected["group"] = "Gemini 4 Argon"
+        else:
+            selected = lowest_bucket
+
         if not selected:
             selected = {
                 "group": "Gemini 4 Argon",
@@ -520,6 +614,9 @@ class AntigravityCollector:
 
         title = active_row.get("title") or active_row.get("preview") or "Antigravity Session"
 
+        # Detect active model from conversation databases or state
+        active_model, active_model_label, active_group_id = self.detect_active_model(active_cid, parent_cid)
+
         active_ctx = {
             "conversation_id": active_cid,
             "title": title,
@@ -529,6 +626,9 @@ class AntigravityCollector:
             "input_tokens": input_tok,
             "cache_read_tokens": cache_tok,
             "output_tokens": output_tok,
+            "active_model": active_model or "gemini-4-hydrogen-xhigh",
+            "active_model_label": active_model_label or "Gemini 4 Hydrogen (XHigh)",
+            "active_model_group": active_group_id or "gemini",
         }
 
         return active_ctx, swarm_dict
@@ -755,12 +855,17 @@ class AntigravityCollector:
         # 2. Fetch live or cached quota
         ls_online, user_info, quota_raw = self.fetch_live_quota_and_user(daemon_info)
 
-        # 3. Transform quota
-        primary_quota, quota_groups = self.transform_quota_groups(quota_raw, pinned_group_pref=pinned_pref)
-
-        # 4. Read conversation summaries & swarm info
+        # 3. Read conversation summaries & swarm info (and detect active model)
         convs = self.read_conversations_db()
         active_ctx, swarm_info = self.extract_active_context_and_swarm(convs)
+
+        # 4. Transform quota with active model intelligence
+        primary_quota, quota_groups = self.transform_quota_groups(
+            quota_raw,
+            pinned_group_pref=pinned_pref,
+            active_model_group=active_ctx.get("active_model_group"),
+            active_model_label=active_ctx.get("active_model_label"),
+        )
 
         # 5. Index transcripts for monthly & project token telemetry
         monthly_tok, projects_list = self.index_transcripts(convs)
@@ -831,7 +936,7 @@ def print_pretty_dashboard(data: Dict[str, Any]) -> None:
     print("\033[1;36m├────────────────────────────────────────────────────────────────────────────┤\033[0m")
     print("\033[1;36m│\033[0m  \033[1;34mACTIVE CONTEXT & SWARM WORKERS\033[0m")
     print(f"\033[1;36m│\033[0m   Project: \033[1;32m{active.get('project_name')}\033[0m  Title: {active.get('title')[:45]}")
-    print(f"\033[1;36m│\033[0m   Context: \033[1;33m{active.get('context_formatted')}\033[0m tokens (Input: {active.get('input_tokens')}, Cache: {active.get('cache_read_tokens')}, Output: {active.get('output_tokens')})")
+    print(f"\033[1;36m│\033[0m   Model: \033[1;36m{active.get('active_model_label', 'Unknown')}\033[0m  Context: \033[1;33m{active.get('context_formatted')}\033[0m tokens (Input: {active.get('input_tokens')}, Cache: {active.get('cache_read_tokens')}, Output: {active.get('output_tokens')})")
 
     if swarm.get("agents"):
         agent_strs = []

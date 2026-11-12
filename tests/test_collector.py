@@ -133,6 +133,17 @@ class TestQuotaTransformation(unittest.TestCase):
         self.assertAlmostEqual(primary["remaining_pct"], 30.0, places=1)
         self.assertEqual(primary["status_level"], "warning")
 
+    def test_auto_active_model_selection(self):
+        # In auto mode, when active model is Gemini 4 Hydrogen, it must bind to gemini group
+        primary, groups = self.collector.transform_quota_groups(
+            self.mock_quota_raw,
+            pinned_group_pref="auto",
+            active_model_group="gemini",
+            active_model_label="Gemini 4 Hydrogen (XHigh)",
+        )
+        self.assertEqual(primary["group"], "4\u00a0Hydrogen")
+        self.assertAlmostEqual(primary["remaining_pct"], 65.0, places=1)
+
     def test_pinned_gemini_selection(self):
         primary, groups = self.collector.transform_quota_groups(self.mock_quota_raw, pinned_group_pref="gemini")
         self.assertEqual(primary["group"], "Gemini\u00a03.8")
@@ -277,6 +288,23 @@ class TestSQLiteAndSwarmExtraction(unittest.TestCase):
         self.assertIn("verifier", agent_names)
         self.assertNotIn("old", agent_names)
 
+    def test_detect_active_model_from_db(self):
+        cid = "conv-active-test"
+        db_path = self.gemini_dir / "conversations" / f"{cid}.db"
+        (self.gemini_dir / "conversations").mkdir(parents=True, exist_ok=True)
+        con = sqlite3.connect(db_path)
+        cur = con.cursor()
+        cur.execute("CREATE TABLE gen_metadata (idx INTEGER PRIMARY KEY, data BLOB)")
+        sample_blob = b"prefix\xaa\x01\x19Gemini 4 Hydrogen (XHigh)suffix"
+        cur.execute("INSERT INTO gen_metadata VALUES (1, ?)", (sample_blob,))
+        con.commit()
+        con.close()
+
+        slug, label, group_id = self.collector.detect_active_model(cid)
+        self.assertEqual(label, "Gemini 4 Hydrogen (XHigh)")
+        self.assertEqual(group_id, "gemini")
+        self.assertIn("hydrogen", slug)
+
 
 class TestIncrementalTranscriptIndexer(unittest.TestCase):
     """Test fast incremental transcript parsing and caching."""
@@ -378,6 +406,8 @@ class TestLiveContractValidation(unittest.TestCase):
         self.assertIn("project_name", act)
         self.assertIn("context_tokens", act)
         self.assertIn("context_formatted", act)
+        self.assertIn("active_model", act)
+        self.assertIn("active_model_label", act)
 
         # Swarm schema
         sw = data["swarm"]
