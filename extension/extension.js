@@ -1,5 +1,5 @@
 /* extension.js
- * Antigravity View Usage Dynamic Island Extension for GNOME Shell 45-50
+ * Antigravity View Usage Unified Dynamic Island Extension for GNOME Shell 45-50
  *
  * Copyright (C) 2026 Brendo Freitas
  * SPDX-License-Identifier: MIT
@@ -102,7 +102,6 @@ function resolveCollectorCmd(extensionPath, pinnedGroup) {
         if (inPath) {
             cmd = [inPath];
         } else {
-            // Check workspace backend script
             const defaultBackend = GLib.build_filenamev([
                 home, 'Projetos', 'antigravity-vU-linux', 'backend', 'ag_vu_collector.py'
             ]);
@@ -152,11 +151,12 @@ const AntigravityIndicator = GObject.registerClass({
         this._isRefreshing = false;
 
         this.add_style_class_name('ag-panel-button');
+        this.add_style_class_name('ag-unified-island-indicator');
 
         this._buildPill();
         this._buildMenuShell();
 
-        // Connect hover for Dynamic Island morphing expansion
+        // Connect hover on our pill
         this._pillBox.connect('notify::hover', () => this._onHoverChanged());
 
         // Connect menu state to re-render when opening
@@ -165,6 +165,12 @@ const AntigravityIndicator = GObject.registerClass({
                 this._renderMenuContent();
             }
         });
+
+        // Initialize and listen to desktop theme changes (Light/Dark + Accent Color)
+        this._initThemeListener();
+
+        // Integrate with Main.panel._centerBox to form the Unified Dynamic Island Capsule
+        this._integrateUnifiedIsland();
 
         // Initial fetch
         this._fetchData();
@@ -249,8 +255,119 @@ const AntigravityIndicator = GObject.registerClass({
         this.menu.addMenuItem(this._menuSection);
     }
 
+    /* =========================================================================
+       Unified Dynamic Island Capsule Management (Date/Time + Antigravity)
+       ========================================================================= */
+
+    _integrateUnifiedIsland() {
+        this._centerBox = Main.panel._centerBox;
+        if (this._centerBox) {
+            this._centerBox.add_style_class_name('ag-unified-island-capsule');
+            this._centerBox.reactive = true;
+            this._centerBox.track_hover = true;
+
+            // Hover on any part of the capsule expands the island
+            this._centerBoxHoverId = this._centerBox.connect('notify::hover', () => {
+                this._onHoverChanged();
+            });
+        }
+
+        // Add class to dateMenu for seamless pill edge and divider
+        this._dateMenu = Main.panel.statusArea.dateMenu || Main.panel._dateMenu;
+        if (this._dateMenu) {
+            this._dateMenu.add_style_class_name('ag-unified-island-date');
+        }
+
+        this._applyTheme();
+    }
+
+    _removeUnifiedIsland() {
+        if (this._centerBox) {
+            if (this._centerBoxHoverId) {
+                this._centerBox.disconnect(this._centerBoxHoverId);
+                this._centerBoxHoverId = 0;
+            }
+            this._centerBox.remove_style_class_name('ag-unified-island-capsule');
+            this._centerBox.remove_style_class_name('ag-theme-dark');
+            this._centerBox.remove_style_class_name('ag-theme-light');
+            this._removeAllAccentClasses(this._centerBox);
+        }
+
+        if (this._dateMenu) {
+            this._dateMenu.remove_style_class_name('ag-unified-island-date');
+        }
+    }
+
+    /* =========================================================================
+       Theme Detection & Adaptation (Light/Dark + Ubuntu Accent Colors)
+       ========================================================================= */
+
+    _initThemeListener() {
+        try {
+            this._desktopSettings = new Gio.Settings({ schema_id: 'org.gnome.desktop.interface' });
+            this._settingsChangedId = this._desktopSettings.connect('changed', (settings, key) => {
+                if (key === 'color-scheme' || key === 'gtk-theme' || key === 'accent-color') {
+                    this._applyTheme();
+                }
+            });
+        } catch (e) {
+            console.warn(`[Antigravity-vU] Could not listen to desktop interface settings: ${e.message}`);
+        }
+    }
+
+    _applyTheme() {
+        let isDark = true;
+        let accent = 'blue';
+
+        if (this._desktopSettings) {
+            try {
+                const colorScheme = this._desktopSettings.get_string('color-scheme');
+                const gtkTheme = this._desktopSettings.get_string('gtk-theme').toLowerCase();
+                isDark = colorScheme === 'prefer-dark' || gtkTheme.includes('dark');
+            } catch (e) {}
+
+            try {
+                accent = this._desktopSettings.get_string('accent-color') || 'blue';
+            } catch (e) {}
+        }
+
+        const themeClass = isDark ? 'ag-theme-dark' : 'ag-theme-light';
+        const accentClass = `ag-accent-${accent}`;
+
+        // Apply to centerBox capsule
+        if (this._centerBox) {
+            this._centerBox.remove_style_class_name('ag-theme-dark');
+            this._centerBox.remove_style_class_name('ag-theme-light');
+            this._removeAllAccentClasses(this._centerBox);
+
+            this._centerBox.add_style_class_name(themeClass);
+            this._centerBox.add_style_class_name(accentClass);
+        }
+
+        // Apply to popup menu content box
+        if (this._contentBox) {
+            this._contentBox.remove_style_class_name('ag-theme-dark');
+            this._contentBox.remove_style_class_name('ag-theme-light');
+            this._removeAllAccentClasses(this._contentBox);
+
+            this._contentBox.add_style_class_name(themeClass);
+            this._contentBox.add_style_class_name(accentClass);
+        }
+    }
+
+    _removeAllAccentClasses(actor) {
+        const accents = ['blue', 'teal', 'green', 'yellow', 'orange', 'red', 'pink', 'purple', 'slate'];
+        for (const a of accents) {
+            actor.remove_style_class_name(`ag-accent-${a}`);
+        }
+    }
+
+    /* =========================================================================
+       Hover & Dynamic Island Morphing
+       ========================================================================= */
+
     _onHoverChanged() {
-        const isHovered = this._pillBox.hover;
+        const isHovered = (this._centerBox && this._centerBox.hover) || this._pillBox.hover;
         if (isHovered) {
             if (this._autoPeekTimerId) {
                 GLib.source_remove(this._autoPeekTimerId);
@@ -271,7 +388,8 @@ const AntigravityIndicator = GObject.registerClass({
                 duration: 180,
                 mode: Clutter.AnimationMode.EASE_OUT_QUAD,
                 onComplete: () => {
-                    if (!this._pillBox.hover && !this._autoPeekActive) {
+                    const stillHovered = (this._centerBox && this._centerBox.hover) || this._pillBox.hover;
+                    if (!stillHovered && !this._autoPeekActive) {
                         this._hoverDetails.visible = false;
                     }
                 },
@@ -299,13 +417,15 @@ const AntigravityIndicator = GObject.registerClass({
             () => {
                 this._autoPeekTimerId = 0;
                 this._autoPeekActive = false;
-                if (!this._pillBox.hover) {
+                const isHovered = (this._centerBox && this._centerBox.hover) || this._pillBox.hover;
+                if (!isHovered) {
                     this._hoverDetails.ease({
                         opacity: 0,
                         duration: 250,
                         mode: Clutter.AnimationMode.EASE_OUT_QUAD,
                         onComplete: () => {
-                            if (!this._pillBox.hover && !this._autoPeekActive) {
+                            const stillHovered = (this._centerBox && this._centerBox.hover) || this._pillBox.hover;
+                            if (!stillHovered && !this._autoPeekActive) {
                                 this._hoverDetails.visible = false;
                             }
                         },
@@ -315,6 +435,10 @@ const AntigravityIndicator = GObject.registerClass({
             }
         );
     }
+
+    /* =========================================================================
+       Data Fetching & Subprocess Communication
+       ========================================================================= */
 
     _fetchData(isManualRefresh = false) {
         if (this._isRefreshing && !isManualRefresh) {
@@ -759,7 +883,7 @@ const AntigravityIndicator = GObject.registerClass({
         const now = new Date();
         const timeStr = now.toLocaleTimeString();
         const footerLabel = new St.Label({
-            text: `Última atualização: ${timeStr} • Antigravity vU Linux v1.0.0`,
+            text: `Última atualização: ${timeStr} • Antigravity vU Linux v1.1.0`,
             style_class: 'ag-footer-text',
             x_align: Clutter.ActorAlign.CENTER,
         });
@@ -777,10 +901,17 @@ const AntigravityIndicator = GObject.registerClass({
             this._autoPeekTimerId = 0;
         }
 
+        if (this._settingsChangedId && this._desktopSettings) {
+            this._desktopSettings.disconnect(this._settingsChangedId);
+            this._settingsChangedId = 0;
+        }
+
         if (this._cancellable) {
             this._cancellable.cancel();
             this._cancellable = null;
         }
+
+        this._removeUnifiedIsland();
 
         super.destroy();
     }
@@ -790,7 +921,7 @@ export default class AntigravityExtension extends Extension {
     enable() {
         this._indicator = new AntigravityIndicator(this);
 
-        // Add to center box next to DateMenu (pos 1 in 'center' box preserves date/clock)
+        // Add to center box next to DateMenu (pos 1 in 'center' box places it beside dateMenu inside unified island)
         Main.panel.addToStatusArea(this.uuid, this._indicator, 1, 'center');
     }
 
