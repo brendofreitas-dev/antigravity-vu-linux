@@ -54,7 +54,7 @@ flowchart LR
 
 ---
 
-### [v1.2.0] — Ecossistema Wayland & Extensibilidade 🌐
+### [v1.3.0] — Ecossistema Wayland & Extensibilidade 🌐
 - [ ] **Modo Floating Overlay (Wayland Layer Shell)**:
   - Aplicação independente em Python/GTK4 ou Rust para ambientes que não utilizam GNOME Shell (Hyprland, Sway, KDE Plasma 6).
 - [ ] **Exportador de Métricas para Prometheus / Grafana**:

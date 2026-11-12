@@ -7,6 +7,16 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ---
 
+## [1.2.0] - 2026-11-12
+
+### Alterado
+- **Dynamic Island monolítica** (inspirada no Volum): a cápsula é uma superfície única e contínua, sem divisor vertical nem caixas internas.
+- Neutralizadas as sub-pílulas do tema Yaru (`#panel .panel-button` com `box-shadow: inset` no hover) dentro da cápsula, via seletores de alta especificidade em `#panel .ag-unified-island-capsule .panel-button` (`:hover`, `:focus`, `:active`, `:checked`, `:overview`) e `.clock-display`/`.clock`.
+- O hover pertence à ilha inteira (`.ag-unified-island-capsule:hover`: borda e sombra mais claras); removidos os hovers separados de data e indicador.
+- Espaçamento interno ajustado (data `0 10px 0 14px`, indicador `0 14px 0 6px`).
+
+---
+
 ## [1.1.3] - 2026-11-12
 
 ### Corrigido
