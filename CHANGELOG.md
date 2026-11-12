@@ -7,6 +7,15 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ---
 
+## [1.1.2] - 2026-11-12
+
+### Corrigido
+- **Top Bar**: texto cortado/deslocado na cápsula; a pílula interna aninhada perdeu fundo, borda e margens, e o indicador usa `y_align: CENTER` / `y_expand: true`.
+- **Nome da cota**: `Gemini Models` aparecia como `Models` (replace sensível a maiúsculas). Novos `formatShortGroupName`/`formatDisplayGroupName`: `Gemini 3.8`, `4 Argon`, `Claude/GPT`.
+- **PopupMenu**: layout compacto; com mais de 4 agentes a lista rola em `St.ScrollView` (`max-height: 135px`), mantendo o menu dentro da tela.
+
+---
+
 ## [1.1.1] - 2026-11-12
 
 ### Alterado
