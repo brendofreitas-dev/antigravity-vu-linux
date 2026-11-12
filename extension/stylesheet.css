@@ -1,45 +1,29 @@
 /* Antigravity View Usage Unified Dynamic Island Stylesheet
- * Supports GNOME Shell 45 - 50
- * Adaptive Theme: Ubuntu Light Mode, Dark Mode & System Accent Colors
+ * Native Ubuntu Yaru Theme for GNOME Shell 45 - 50
+ * Neutral Graphite Palette: Yaru Dark (#36363a / #242426) & Yaru Light (#ffffff / #f4f4f6)
  */
 
 /* ==========================================================================
-   1. UNIFIED DYNAMIC ISLAND CAPSULE (Main.panel._centerBox)
+   1. TOP BAR CAPSULE & PILL (Default & Dark: Ubuntu Yaru Graphite)
    ========================================================================== */
 
+/* Unified Dynamic Island Capsule (when wrapping Main.panel._centerBox) */
 .ag-unified-island-capsule {
     border-radius: 9999px;
     padding: 0 4px;
     margin: 3px 0;
     spacing: 0px;
-    transition-duration: 250ms;
+    transition-duration: 200ms;
+    background-color: rgba(45, 45, 50, 0.90);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
 }
 
-/* Dark Mode Capsule */
-.ag-theme-dark.ag-unified-island-capsule {
-    background-color: rgba(14, 20, 32, 0.88);
-    border: 1px solid rgba(255, 255, 255, 0.14);
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.45);
+.ag-unified-island-capsule:hover {
+    background-color: rgba(58, 58, 64, 0.96);
+    border-color: rgba(255, 255, 255, 0.22);
 }
 
-.ag-theme-dark.ag-unified-island-capsule:hover {
-    background-color: rgba(22, 31, 50, 0.96);
-    border-color: rgba(255, 255, 255, 0.25);
-}
-
-/* Light Mode Capsule */
-.ag-theme-light.ag-unified-island-capsule {
-    background-color: rgba(248, 250, 252, 0.92);
-    border: 1px solid rgba(0, 0, 0, 0.12);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.10);
-}
-
-.ag-theme-light.ag-unified-island-capsule:hover {
-    background-color: rgba(255, 255, 255, 0.98);
-    border-color: rgba(0, 0, 0, 0.22);
-}
-
-/* Make both inner buttons transparent and seamlessly connected */
 .ag-unified-island-capsule .panel-button {
     background-color: transparent !important;
     border: none !important;
@@ -47,41 +31,90 @@
     margin: 0 !important;
 }
 
-/* Left Half: Native Date/Time */
+/* Standalone Pill (closed mode within button) */
+.ag-panel-button {
+    padding: 0 3px;
+    margin: 0;
+}
+
+.ag-panel-button:hover {
+    background-color: transparent;
+}
+
+.ag-island-pill {
+    background-color: rgba(45, 45, 50, 0.90);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 9999px;
+    padding: 2px 10px;
+    margin: 2px 0;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+    spacing: 6px;
+    transition-duration: 200ms;
+}
+
+.ag-island-pill:hover {
+    background-color: rgba(58, 58, 64, 0.96);
+    border-color: rgba(255, 255, 255, 0.22);
+}
+
+/* Left Half: Date/Time in Unified Island */
 .ag-unified-island-date {
     padding: 0 10px 0 12px !important;
+    border-right: 1px solid rgba(255, 255, 255, 0.12) !important;
+    color: #f8fafc;
     transition-duration: 150ms;
 }
 
-.ag-theme-dark .ag-unified-island-date {
-    border-right: 1px solid rgba(255, 255, 255, 0.12) !important;
-    color: #f8fafc;
-}
-
-.ag-theme-light .ag-unified-island-date {
-    border-right: 1px solid rgba(0, 0, 0, 0.12) !important;
-    color: #0f172a;
-}
-
-.ag-theme-dark .ag-unified-island-date:hover {
+.ag-unified-island-date:hover {
     background-color: rgba(255, 255, 255, 0.08) !important;
     border-radius: 9999px 0 0 9999px !important;
 }
 
-.ag-theme-light .ag-unified-island-date:hover {
-    background-color: rgba(0, 0, 0, 0.05) !important;
-    border-radius: 9999px 0 0 9999px !important;
-}
-
-/* Right Half: Antigravity Telemetry */
+/* Right Half: Antigravity Indicator in Unified Island */
 .ag-unified-island-indicator {
     padding: 0 10px 0 8px !important;
     transition-duration: 150ms;
 }
 
-.ag-theme-dark .ag-unified-island-indicator:hover {
+.ag-unified-island-indicator:hover {
     background-color: rgba(255, 255, 255, 0.08) !important;
     border-radius: 0 9999px 9999px 0 !important;
+}
+
+/* ==========================================================================
+   2. LIGHT MODE CAPSULE & PILL (Ubuntu Yaru Light)
+   ========================================================================== */
+
+.ag-theme-light.ag-unified-island-capsule {
+    background-color: rgba(240, 240, 244, 0.92);
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.ag-theme-light.ag-unified-island-capsule:hover {
+    background-color: rgba(250, 250, 252, 0.98);
+    border-color: rgba(0, 0, 0, 0.20);
+}
+
+.ag-theme-light .ag-island-pill {
+    background-color: rgba(240, 240, 244, 0.92);
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.ag-theme-light .ag-island-pill:hover {
+    background-color: rgba(250, 250, 252, 0.98);
+    border-color: rgba(0, 0, 0, 0.20);
+}
+
+.ag-theme-light .ag-unified-island-date {
+    border-right: 1px solid rgba(0, 0, 0, 0.10) !important;
+    color: #18181b;
+}
+
+.ag-theme-light .ag-unified-island-date:hover {
+    background-color: rgba(0, 0, 0, 0.05) !important;
+    border-radius: 9999px 0 0 9999px !important;
 }
 
 .ag-theme-light .ag-unified-island-indicator:hover {
@@ -90,15 +123,9 @@
 }
 
 /* ==========================================================================
-   2. PILL INTERNALS & STATUS DOTS
+   3. STATUS DOTS & LABELS
    ========================================================================== */
 
-.ag-island-pill {
-    spacing: 6px;
-    padding: 2px 2px;
-}
-
-/* Status Indicator Dots */
 .ag-dot {
     width: 8px;
     height: 8px;
@@ -126,115 +153,92 @@
     box-shadow: 0 0 8px rgba(239, 68, 68, 0.8);
 }
 
-/* Quota Label */
 .ag-pill-quota {
     font-size: 10pt;
     font-weight: 700;
-}
-
-.ag-theme-dark .ag-pill-quota {
     color: #f8fafc;
 }
 
 .ag-theme-light .ag-pill-quota {
-    color: #0f172a;
+    color: #18181b;
 }
 
-/* Hover Details Container */
 .ag-island-hover-details {
     spacing: 6px;
 }
 
-.ag-theme-dark .ag-hover-sep {
+.ag-hover-sep {
     color: rgba(255, 255, 255, 0.35);
     font-size: 9pt;
 }
 
 .ag-theme-light .ag-hover-sep {
     color: rgba(0, 0, 0, 0.30);
-    font-size: 9pt;
 }
 
-.ag-theme-dark .ag-hover-text {
+.ag-hover-text {
     font-size: 9.5pt;
     color: #cbd5e1;
     font-weight: 600;
 }
 
 .ag-theme-light .ag-hover-text {
-    font-size: 9.5pt;
     color: #334155;
-    font-weight: 600;
 }
 
 .ag-hover-swarm {
     font-size: 9.5pt;
     font-weight: 700;
+    color: #38bdf8;
+}
+
+.ag-theme-light .ag-hover-swarm {
+    color: #0284c7;
 }
 
 /* ==========================================================================
-   3. ACCENT COLOR GLOWS & HIGHLIGHTS
+   4. POPUP MENU DASHBOARD (Exact Ubuntu Yaru Palette)
    ========================================================================== */
 
-.ag-accent-blue .ag-hover-swarm { color: #3b82f6; }
-.ag-accent-blue.ag-unified-island-capsule:hover { border-color: rgba(59, 130, 246, 0.45); }
+/* Outer Shell / Boxpointer Sync */
+.ag-theme-dark.popup-menu-content {
+    background-color: #36363a !important;
+    border: 1px solid #424247 !important;
+}
 
-.ag-accent-orange .ag-hover-swarm { color: #e95420; }
-.ag-accent-orange.ag-unified-island-capsule:hover { border-color: rgba(233, 84, 32, 0.45); }
+.ag-theme-light.popup-menu-content {
+    background-color: #ffffff !important;
+    border: 1px solid #ededed !important;
+}
 
-.ag-accent-purple .ag-hover-swarm { color: #8b5cf6; }
-.ag-accent-purple.ag-unified-island-capsule:hover { border-color: rgba(139, 92, 246, 0.45); }
-
-.ag-accent-green .ag-hover-swarm { color: #10b981; }
-.ag-accent-green.ag-unified-island-capsule:hover { border-color: rgba(16, 185, 129, 0.45); }
-
-.ag-accent-red .ag-hover-swarm { color: #ef4444; }
-.ag-accent-red.ag-unified-island-capsule:hover { border-color: rgba(239, 68, 68, 0.45); }
-
-.ag-accent-yellow .ag-hover-swarm { color: #f59e0b; }
-.ag-accent-yellow.ag-unified-island-capsule:hover { border-color: rgba(245, 158, 11, 0.45); }
-
-.ag-accent-teal .ag-hover-swarm { color: #0d9488; }
-.ag-accent-teal.ag-unified-island-capsule:hover { border-color: rgba(13, 148, 136, 0.45); }
-
-.ag-accent-pink .ag-hover-swarm { color: #ec4899; }
-.ag-accent-pink.ag-unified-island-capsule:hover { border-color: rgba(236, 72, 153, 0.45); }
-
-.ag-accent-slate .ag-hover-swarm { color: #64748b; }
-.ag-accent-slate.ag-unified-island-capsule:hover { border-color: rgba(100, 116, 139, 0.45); }
-
-/* ==========================================================================
-   4. POPUP MENU DASHBOARD (Adaptive Theme)
-   ========================================================================== */
-
+/* Main Content Box */
 .ag-popup-menu {
     border-radius: 16px;
     padding: 14px 16px;
     width: 420px;
     min-width: 400px;
+    /* Default / Dark Yaru palette */
+    background-color: #36363a;
+    border: 1px solid #424247;
+    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.55);
 }
 
-/* Dark Theme Popup */
 .ag-theme-dark.ag-popup-menu {
-    background-color: rgba(11, 15, 26, 0.98);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7);
+    background-color: #36363a;
+    border: 1px solid #424247;
+    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.55);
 }
 
-/* Light Theme Popup */
 .ag-theme-light.ag-popup-menu {
-    background-color: rgba(255, 255, 255, 0.98);
-    border: 1px solid rgba(0, 0, 0, 0.12);
-    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.18);
+    background-color: #ffffff;
+    border: 1px solid #ededed;
+    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.12);
 }
 
 /* Header */
 .ag-header-box {
     margin-bottom: 10px;
     padding-bottom: 8px;
-}
-
-.ag-theme-dark .ag-header-box {
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
@@ -245,14 +249,11 @@
 .ag-header-title {
     font-size: 12pt;
     font-weight: 800;
-}
-
-.ag-theme-dark .ag-header-title {
     color: #f8fafc;
 }
 
 .ag-theme-light .ag-header-title {
-    color: #0f172a;
+    color: #18181b;
 }
 
 .ag-tier-badge {
@@ -260,24 +261,15 @@
     padding: 2px 7px;
     font-size: 8pt;
     font-weight: 700;
-}
-
-.ag-accent-blue .ag-tier-badge {
     background-color: rgba(59, 130, 246, 0.20);
-    border: 1px solid rgba(59, 130, 246, 0.4);
-    color: #3b82f6;
+    border: 1px solid rgba(59, 130, 246, 0.40);
+    color: #60a5fa;
 }
 
-.ag-accent-orange .ag-tier-badge {
-    background-color: rgba(233, 84, 32, 0.20);
-    border: 1px solid rgba(233, 84, 32, 0.4);
-    color: #e95420;
-}
-
-.ag-accent-purple .ag-tier-badge {
-    background-color: rgba(139, 92, 246, 0.20);
-    border: 1px solid rgba(139, 92, 246, 0.4);
-    color: #8b5cf6;
+.ag-theme-light .ag-tier-badge {
+    color: #2563eb;
+    background-color: rgba(37, 99, 235, 0.12);
+    border-color: rgba(37, 99, 235, 0.30);
 }
 
 .ag-online-badge {
@@ -297,31 +289,28 @@
     padding: 3px 8px;
     font-size: 11pt;
     font-weight: bold;
-}
-
-.ag-theme-dark .ag-btn-refresh {
-    background-color: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background-color: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.12);
     color: #cbd5e1;
 }
 
-.ag-theme-dark .ag-btn-refresh:hover {
-    background-color: rgba(255, 255, 255, 0.15);
+.ag-btn-refresh:hover {
+    background-color: rgba(255, 255, 255, 0.16);
     color: #f8fafc;
 }
 
 .ag-theme-light .ag-btn-refresh {
     background-color: rgba(0, 0, 0, 0.05);
-    border: 1px solid rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(0, 0, 0, 0.10);
     color: #334155;
 }
 
 .ag-theme-light .ag-btn-refresh:hover {
-    background-color: rgba(0, 0, 0, 0.12);
+    background-color: rgba(0, 0, 0, 0.10);
     color: #0f172a;
 }
 
-/* Section Headings */
+/* Section Titles */
 .ag-section-title {
     font-size: 8.5pt;
     font-weight: 800;
@@ -329,14 +318,11 @@
     letter-spacing: 0.8px;
     margin-top: 10px;
     margin-bottom: 6px;
-}
-
-.ag-theme-dark .ag-section-title {
     color: #94a3b8;
 }
 
 .ag-theme-light .ag-section-title {
-    color: #475569;
+    color: #64748b;
 }
 
 /* Quota Cards */
@@ -344,41 +330,37 @@
     border-radius: 10px;
     padding: 8px 10px;
     margin-bottom: 6px;
+    background-color: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .ag-theme-dark .ag-group-card {
-    background-color: rgba(255, 255, 255, 0.035);
-    border: 1px solid rgba(255, 255, 255, 0.06);
+    background-color: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .ag-theme-light .ag-group-card {
-    background-color: rgba(241, 245, 249, 0.85);
+    background-color: #f4f4f6;
     border: 1px solid rgba(0, 0, 0, 0.06);
 }
 
 .ag-group-name {
     font-size: 10pt;
     font-weight: 700;
-}
-
-.ag-theme-dark .ag-group-name {
     color: #f1f5f9;
 }
 
 .ag-theme-light .ag-group-name {
-    color: #0f172a;
+    color: #18181b;
 }
 
 .ag-pin-btn {
     font-size: 8pt;
     padding: 2px 6px;
     border-radius: 5px;
-}
-
-.ag-theme-dark .ag-pin-btn {
-    background-color: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    color: #94a3b8;
+    background-color: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    color: #cbd5e1;
 }
 
 .ag-theme-light .ag-pin-btn {
@@ -388,19 +370,10 @@
 }
 
 .ag-pin-btn-active {
+    background-color: rgba(59, 130, 246, 0.25);
+    border: 1px solid rgba(59, 130, 246, 0.45);
+    color: #60a5fa;
     font-weight: 700;
-}
-
-.ag-accent-blue .ag-pin-btn-active {
-    background-color: rgba(59, 130, 246, 0.20);
-    border: 1px solid rgba(59, 130, 246, 0.4);
-    color: #3b82f6;
-}
-
-.ag-accent-orange .ag-pin-btn-active {
-    background-color: rgba(233, 84, 32, 0.20);
-    border: 1px solid rgba(233, 84, 32, 0.4);
-    color: #e95420;
 }
 
 .ag-bucket-row {
@@ -410,18 +383,18 @@
 .ag-bucket-label {
     font-size: 8.5pt;
     font-weight: 500;
+    color: #cbd5e1;
 }
 
-.ag-theme-dark .ag-bucket-label { color: #cbd5e1; }
 .ag-theme-light .ag-bucket-label { color: #334155; }
 
 .ag-bucket-meta {
     font-size: 8.5pt;
     font-weight: 600;
+    color: #94a3b8;
 }
 
-.ag-theme-dark .ag-bucket-meta { color: #94a3b8; }
-.ag-theme-light .ag-bucket-meta { color: #475569; }
+.ag-theme-light .ag-bucket-meta { color: #64748b; }
 
 /* Progress Bars */
 .ag-bar-track {
@@ -430,10 +403,7 @@
     min-height: 6px;
     margin-top: 4px;
     margin-bottom: 6px;
-}
-
-.ag-theme-dark .ag-bar-track {
-    background-color: rgba(255, 255, 255, 0.08);
+    background-color: rgba(255, 255, 255, 0.10);
 }
 
 .ag-theme-light .ag-bar-track {
@@ -466,52 +436,56 @@
     border-radius: 10px;
     padding: 8px 10px;
     margin-bottom: 6px;
+    background-color: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .ag-theme-dark .ag-context-card {
-    background-color: rgba(30, 41, 59, 0.35);
+    background-color: rgba(255, 255, 255, 0.05);
     border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .ag-theme-light .ag-context-card {
-    background-color: rgba(241, 245, 249, 0.90);
-    border: 1px solid rgba(0, 0, 0, 0.08);
+    background-color: #f4f4f6;
+    border: 1px solid rgba(0, 0, 0, 0.06);
 }
 
 .ag-project-title {
     font-size: 9.5pt;
     font-weight: 700;
+    color: #38bdf8;
 }
 
-.ag-accent-blue .ag-project-title { color: #3b82f6; }
-.ag-accent-orange .ag-project-title { color: #e95420; }
-.ag-accent-purple .ag-project-title { color: #8b5cf6; }
+.ag-theme-light .ag-project-title {
+    color: #0284c7;
+}
 
 .ag-session-title {
     font-size: 8.5pt;
+    color: #94a3b8;
 }
 
-.ag-theme-dark .ag-session-title { color: #94a3b8; }
-.ag-theme-light .ag-session-title { color: #475569; }
+.ag-theme-light .ag-session-title {
+    color: #64748b;
+}
 
 .ag-context-total {
     font-size: 13pt;
     font-weight: 800;
     margin-top: 2px;
+    color: #f8fafc;
 }
 
-.ag-theme-dark .ag-context-total { color: #f8fafc; }
-.ag-theme-light .ag-context-total { color: #0f172a; }
+.ag-theme-light .ag-context-total {
+    color: #18181b;
+}
 
 .ag-chip {
     border-radius: 5px;
     padding: 2px 6px;
     font-size: 8pt;
     font-weight: 500;
-}
-
-.ag-theme-dark .ag-chip {
-    background-color: rgba(255, 255, 255, 0.05);
+    background-color: rgba(255, 255, 255, 0.06);
     color: #cbd5e1;
 }
 
@@ -525,11 +499,8 @@
     border-radius: 6px;
     padding: 4px 8px;
     margin-bottom: 3px;
-}
-
-.ag-theme-dark .ag-agent-item {
-    background-color: rgba(255, 255, 255, 0.02);
-    border: 1px solid rgba(255, 255, 255, 0.04);
+    background-color: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .ag-theme-light .ag-agent-item {
@@ -540,32 +511,31 @@
 .ag-agent-name {
     font-size: 8.5pt;
     font-weight: 700;
+    color: #f8fafc;
 }
 
-.ag-theme-dark .ag-agent-name { color: #f8fafc; }
-.ag-theme-light .ag-agent-name { color: #0f172a; }
+.ag-theme-light .ag-agent-name {
+    color: #18181b;
+}
 
 .ag-agent-status-working {
-    background-color: rgba(56, 189, 248, 0.2);
-    border: 1px solid rgba(56, 189, 248, 0.3);
-    color: #0284c7;
+    background-color: rgba(56, 189, 248, 0.20);
+    border: 1px solid rgba(56, 189, 248, 0.35);
+    color: #38bdf8;
     border-radius: 4px;
     padding: 1px 5px;
     font-size: 7.5pt;
     font-weight: 700;
 }
 
-.ag-theme-dark .ag-agent-status-working {
-    color: #38bdf8;
+.ag-theme-light .ag-agent-status-working {
+    color: #0284c7;
 }
 
 .ag-agent-status-idle {
     border-radius: 4px;
     padding: 1px 5px;
     font-size: 7.5pt;
-}
-
-.ag-theme-dark .ag-agent-status-idle {
     background-color: rgba(148, 163, 184, 0.12);
     color: #94a3b8;
 }
@@ -584,15 +554,12 @@
 .ag-token-card {
     border-radius: 8px;
     padding: 6px 8px;
-}
-
-.ag-theme-dark .ag-token-card {
-    background-color: rgba(255, 255, 255, 0.03);
+    background-color: rgba(255, 255, 255, 0.04);
     border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .ag-theme-light .ag-token-card {
-    background-color: rgba(241, 245, 249, 0.85);
+    background-color: #f4f4f6;
     border: 1px solid rgba(0, 0, 0, 0.06);
 }
 
@@ -600,28 +567,29 @@
     font-size: 7.5pt;
     font-weight: 700;
     text-transform: uppercase;
+    color: #94a3b8;
 }
 
-.ag-theme-dark .ag-token-title { color: #94a3b8; }
-.ag-theme-light .ag-token-title { color: #475569; }
+.ag-theme-light .ag-token-title {
+    color: #64748b;
+}
 
 .ag-token-val {
     font-size: 11pt;
     font-weight: 800;
+    color: #f8fafc;
 }
 
-.ag-theme-dark .ag-token-val { color: #f8fafc; }
-.ag-theme-light .ag-token-val { color: #0f172a; }
+.ag-theme-light .ag-token-val {
+    color: #18181b;
+}
 
 /* Top Projects */
 .ag-project-item {
     border-radius: 6px;
     padding: 4px 8px;
     margin-bottom: 3px;
-}
-
-.ag-theme-dark .ag-project-item {
-    background-color: rgba(255, 255, 255, 0.02);
+    background-color: rgba(255, 255, 255, 0.03);
 }
 
 .ag-theme-light .ag-project-item {
@@ -631,19 +599,22 @@
 .ag-project-name {
     font-size: 8.5pt;
     font-weight: 600;
+    color: #e2e8f0;
 }
 
-.ag-theme-dark .ag-project-name { color: #e2e8f0; }
-.ag-theme-light .ag-project-name { color: #1e293b; }
+.ag-theme-light .ag-project-name {
+    color: #1e293b;
+}
 
 .ag-project-tokens {
     font-size: 8.5pt;
     font-weight: 700;
+    color: #38bdf8;
 }
 
-.ag-accent-blue .ag-project-tokens { color: #3b82f6; }
-.ag-accent-orange .ag-project-tokens { color: #e95420; }
-.ag-accent-purple .ag-project-tokens { color: #8b5cf6; }
+.ag-theme-light .ag-project-tokens {
+    color: #0284c7;
+}
 
 .ag-project-details {
     font-size: 7.5pt;
@@ -657,3 +628,79 @@
     margin-top: 10px;
     text-align: center;
 }
+
+/* ==========================================================================
+   5. ACCENT COLORS (Ubuntu Signature Colors)
+   ========================================================================== */
+
+/* Blue (Default / Yaru Blue) */
+.ag-accent-blue .ag-hover-swarm { color: #3b82f6; }
+.ag-accent-blue .ag-project-title { color: #3b82f6; }
+.ag-accent-blue .ag-project-tokens { color: #3b82f6; }
+.ag-accent-blue .ag-tier-badge { background-color: rgba(59, 130, 246, 0.20); border-color: rgba(59, 130, 246, 0.40); color: #3b82f6; }
+.ag-accent-blue .ag-pin-btn-active { background-color: rgba(59, 130, 246, 0.20); border-color: rgba(59, 130, 246, 0.40); color: #3b82f6; }
+.ag-accent-blue.ag-unified-island-capsule:hover { border-color: rgba(59, 130, 246, 0.45); }
+
+/* Orange (Ubuntu Signature) */
+.ag-accent-orange .ag-hover-swarm { color: #e95420; }
+.ag-accent-orange .ag-project-title { color: #e95420; }
+.ag-accent-orange .ag-project-tokens { color: #e95420; }
+.ag-accent-orange .ag-tier-badge { background-color: rgba(233, 84, 32, 0.20); border-color: rgba(233, 84, 32, 0.40); color: #e95420; }
+.ag-accent-orange .ag-pin-btn-active { background-color: rgba(233, 84, 32, 0.20); border-color: rgba(233, 84, 32, 0.40); color: #e95420; }
+.ag-accent-orange.ag-unified-island-capsule:hover { border-color: rgba(233, 84, 32, 0.45); }
+
+/* Purple (Ubuntu Purple) */
+.ag-accent-purple .ag-hover-swarm { color: #8b5cf6; }
+.ag-accent-purple .ag-project-title { color: #8b5cf6; }
+.ag-accent-purple .ag-project-tokens { color: #8b5cf6; }
+.ag-accent-purple .ag-tier-badge { background-color: rgba(139, 92, 246, 0.20); border-color: rgba(139, 92, 246, 0.40); color: #8b5cf6; }
+.ag-accent-purple .ag-pin-btn-active { background-color: rgba(139, 92, 246, 0.20); border-color: rgba(139, 92, 246, 0.40); color: #8b5cf6; }
+.ag-accent-purple.ag-unified-island-capsule:hover { border-color: rgba(139, 92, 246, 0.45); }
+
+/* Green */
+.ag-accent-green .ag-hover-swarm { color: #10b981; }
+.ag-accent-green .ag-project-title { color: #10b981; }
+.ag-accent-green .ag-project-tokens { color: #10b981; }
+.ag-accent-green .ag-tier-badge { background-color: rgba(16, 185, 129, 0.20); border-color: rgba(16, 185, 129, 0.40); color: #10b981; }
+.ag-accent-green .ag-pin-btn-active { background-color: rgba(16, 185, 129, 0.20); border-color: rgba(16, 185, 129, 0.40); color: #10b981; }
+.ag-accent-green.ag-unified-island-capsule:hover { border-color: rgba(16, 185, 129, 0.45); }
+
+/* Red */
+.ag-accent-red .ag-hover-swarm { color: #ef4444; }
+.ag-accent-red .ag-project-title { color: #ef4444; }
+.ag-accent-red .ag-project-tokens { color: #ef4444; }
+.ag-accent-red .ag-tier-badge { background-color: rgba(239, 68, 68, 0.20); border-color: rgba(239, 68, 68, 0.40); color: #ef4444; }
+.ag-accent-red .ag-pin-btn-active { background-color: rgba(239, 68, 68, 0.20); border-color: rgba(239, 68, 68, 0.40); color: #ef4444; }
+.ag-accent-red.ag-unified-island-capsule:hover { border-color: rgba(239, 68, 68, 0.45); }
+
+/* Yellow */
+.ag-accent-yellow .ag-hover-swarm { color: #f59e0b; }
+.ag-accent-yellow .ag-project-title { color: #f59e0b; }
+.ag-accent-yellow .ag-project-tokens { color: #f59e0b; }
+.ag-accent-yellow .ag-tier-badge { background-color: rgba(245, 158, 11, 0.20); border-color: rgba(245, 158, 11, 0.40); color: #f59e0b; }
+.ag-accent-yellow .ag-pin-btn-active { background-color: rgba(245, 158, 11, 0.20); border-color: rgba(245, 158, 11, 0.40); color: #f59e0b; }
+.ag-accent-yellow.ag-unified-island-capsule:hover { border-color: rgba(245, 158, 11, 0.45); }
+
+/* Teal */
+.ag-accent-teal .ag-hover-swarm { color: #0d9488; }
+.ag-accent-teal .ag-project-title { color: #0d9488; }
+.ag-accent-teal .ag-project-tokens { color: #0d9488; }
+.ag-accent-teal .ag-tier-badge { background-color: rgba(13, 148, 136, 0.20); border-color: rgba(13, 148, 136, 0.40); color: #0d9488; }
+.ag-accent-teal .ag-pin-btn-active { background-color: rgba(13, 148, 136, 0.20); border-color: rgba(13, 148, 136, 0.40); color: #0d9488; }
+.ag-accent-teal.ag-unified-island-capsule:hover { border-color: rgba(13, 148, 136, 0.45); }
+
+/* Pink */
+.ag-accent-pink .ag-hover-swarm { color: #ec4899; }
+.ag-accent-pink .ag-project-title { color: #ec4899; }
+.ag-accent-pink .ag-project-tokens { color: #ec4899; }
+.ag-accent-pink .ag-tier-badge { background-color: rgba(236, 72, 153, 0.20); border-color: rgba(236, 72, 153, 0.40); color: #ec4899; }
+.ag-accent-pink .ag-pin-btn-active { background-color: rgba(236, 72, 153, 0.20); border-color: rgba(236, 72, 153, 0.40); color: #ec4899; }
+.ag-accent-pink.ag-unified-island-capsule:hover { border-color: rgba(236, 72, 153, 0.45); }
+
+/* Slate */
+.ag-accent-slate .ag-hover-swarm { color: #64748b; }
+.ag-accent-slate .ag-project-title { color: #64748b; }
+.ag-accent-slate .ag-project-tokens { color: #64748b; }
+.ag-accent-slate .ag-tier-badge { background-color: rgba(100, 116, 139, 0.20); border-color: rgba(100, 116, 139, 0.40); color: #64748b; }
+.ag-accent-slate .ag-pin-btn-active { background-color: rgba(100, 116, 139, 0.20); border-color: rgba(100, 116, 139, 0.40); color: #64748b; }
+.ag-accent-slate.ag-unified-island-capsule:hover { border-color: rgba(100, 116, 139, 0.45); }

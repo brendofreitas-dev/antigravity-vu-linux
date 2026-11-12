@@ -39,9 +39,7 @@ mkdir -p "$CONFIG_DIR"
 
 # 3. Copiar arquivos da extensão GNOME
 echo -e "${BLUE}[2/5]${NC} Copiando arquivos da extensão para $EXT_DST..."
-cp -v "$EXT_SRC/metadata.json" "$EXT_DST/"
-cp -v "$EXT_SRC/extension.js" "$EXT_DST/"
-cp -v "$EXT_SRC/stylesheet.css" "$EXT_DST/"
+cp -v "$EXT_SRC/"* "$EXT_DST/"
 
 # 4. Configurar CLI backend ag-vu
 echo -e "${BLUE}[3/5]${NC} Configurando CLI backend em $BIN_TARGET..."
