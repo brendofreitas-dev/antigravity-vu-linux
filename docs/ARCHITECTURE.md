@@ -144,6 +144,7 @@ Main.panel.addToStatusArea(this.uuid, this._indicator, 1, 'center');
 
 - **Hot-reload (v1.1.1)**: `extension.js` é um carregador; a lógica fica em `island.js`, importado com `?t=<Date.now()>` para quebrar o cache de módulos do GJS.
 - **Regra de tema**: `prefer-light` → Light; `prefer-dark` → Dark; `gtk-theme` (`-dark`) só quando `color-scheme` = `default`. Também escuta `St.ThemeContext` `changed`. Paleta Yaru neutra (Dark `#36363a`/cards `#2a2a2e`; Light `#ffffff`/cards `#f4f4f6`).
+- **Estilo System Tray Nativo (v1.2.2)**: Em repouso, a cápsula unificada é 100% transparente no painel. Ao passar o mouse, adota o realce nativo do Ubuntu Yaru (`box-shadow: inset 0 0 0 100px rgba(255, 255, 255, 0.17)` com `border: 3px solid transparent`), sem sombras cinzas externas ou bordas estáticas.
 
 ### 4.3. Os Três Estágios da Dynamic Island
 

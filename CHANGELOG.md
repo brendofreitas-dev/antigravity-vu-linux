@@ -7,6 +7,17 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ---
 
+## [1.2.2] - 2026-11-12
+
+### Alterado
+- **Estilo nativo da Top Bar (padrão Ubuntu System Tray)**:
+  - Em repouso (sem hover): cápsula `.ag-unified-island-capsule` 100% transparente, sem borda estática, sem fundo cinza fixo e sem sombras externas, integrando-se de forma limpa ao painel superior do GNOME.
+  - No hover: adota o realce nativo dos botões da Top Bar do tema Ubuntu Yaru (`box-shadow: inset 0 0 0 100px rgba(255, 255, 255, 0.17)`, `border: 3px solid transparent`, `border-radius: 999px`), iluminando a cápsula de forma contínua e monolítica sem divisões internas.
+  - No clique (`:active`): realce nativo reforçado com `rgba(255, 255, 255, 0.28)`.
+  - Cores dos textos da Top Bar mantidas em tons claros (`#f8fafc` / `#cbd5e1`) mesmo com o sistema em Light Mode, acompanhando a barra superior escura nativa do Ubuntu Yaru.
+
+---
+
 ## [1.2.1] - 2026-11-12
 
 ### Alterado
