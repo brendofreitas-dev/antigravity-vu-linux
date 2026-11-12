@@ -19,6 +19,41 @@ import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
 const POLL_INTERVAL_SECONDS = 5;
 const AUTO_PEEK_DURATION_MS = 4000;
 
+function createVBox(styleClass = null, spacing = 0) {
+    const box = new St.BoxLayout({
+        vertical: true,
+        x_expand: true,
+    });
+    if (Clutter.Orientation) {
+        box.orientation = Clutter.Orientation.VERTICAL;
+    }
+    if (styleClass) {
+        box.add_style_class_name(styleClass);
+    }
+    if (spacing > 0) {
+        box.spacing = spacing;
+    }
+    return box;
+}
+
+function createHBox(styleClass = null, spacing = 0) {
+    const box = new St.BoxLayout({
+        vertical: false,
+        x_expand: true,
+        y_align: Clutter.ActorAlign.CENTER,
+    });
+    if (Clutter.Orientation) {
+        box.orientation = Clutter.Orientation.HORIZONTAL;
+    }
+    if (styleClass) {
+        box.add_style_class_name(styleClass);
+    }
+    if (spacing > 0) {
+        box.spacing = spacing;
+    }
+    return box;
+}
+
 function loadPrefs() {
     try {
         const configDir = GLib.build_filenamev([GLib.get_user_config_dir(), 'antigravity-vu']);
@@ -146,13 +181,10 @@ const AntigravityIndicator = GObject.registerClass({
     }
 
     _buildPill() {
-        this._pillBox = new St.BoxLayout({
-            style_class: 'ag-island-pill',
-            reactive: true,
-            track_hover: true,
-            can_focus: true,
-            y_align: Clutter.ActorAlign.CENTER,
-        });
+        this._pillBox = createHBox('ag-island-pill', 6);
+        this._pillBox.reactive = true;
+        this._pillBox.track_hover = true;
+        this._pillBox.can_focus = true;
 
         // Status glowing dot
         this._statusDot = new St.Widget({
@@ -170,12 +202,9 @@ const AntigravityIndicator = GObject.registerClass({
         this._pillBox.add_child(this._quotaLabel);
 
         // Hover & Auto-peek details container (Dynamic Island expanded mode)
-        this._hoverDetails = new St.BoxLayout({
-            style_class: 'ag-island-hover-details',
-            visible: false,
-            opacity: 0,
-            y_align: Clutter.ActorAlign.CENTER,
-        });
+        this._hoverDetails = createHBox('ag-island-hover-details', 6);
+        this._hoverDetails.visible = false;
+        this._hoverDetails.opacity = 0;
 
         const sep1 = new St.Label({
             text: '•',
@@ -210,38 +239,14 @@ const AntigravityIndicator = GObject.registerClass({
     }
 
     _buildMenuShell() {
-        // Base menu item that holds our custom dashboard
-        const baseItem = new PopupMenu.PopupBaseMenuItem({
-            reactive: false,
-            can_focus: false,
-            activate: false,
-            hover: false,
-        });
+        // Direct PopupMenuSection to prevent St.ScrollView zero-height collapse in GNOME 46-50
+        this._menuSection = new PopupMenu.PopupMenuSection();
 
-        this._menuBox = new St.BoxLayout({
-            style_class: 'ag-popup-menu',
-            vertical: true,
-            x_expand: true,
-            y_expand: true,
-        });
+        this._contentBox = createVBox('ag-popup-menu');
 
-        this._scrollView = new St.ScrollView({
-            style_class: 'ag-scroll-area',
-            hscrollbar_policy: St.PolicyType.NEVER,
-            vscrollbar_policy: St.PolicyType.AUTOMATIC,
-            x_expand: true,
-            y_expand: true,
-        });
-
-        this._contentBox = new St.BoxLayout({
-            vertical: true,
-            x_expand: true,
-        });
-
-        this._scrollView.set_child(this._contentBox);
-        this._menuBox.add_child(this._scrollView);
-        baseItem.add_child(this._menuBox);
-        this.menu.addMenuItem(baseItem);
+        const container = this._menuSection.actor || this._menuSection;
+        container.add_child(this._contentBox);
+        this.menu.addMenuItem(this._menuSection);
     }
 
     _onHoverChanged() {
@@ -420,27 +425,32 @@ const AntigravityIndicator = GObject.registerClass({
         this._contentBox.destroy_all_children();
 
         if (!data) {
+            const loadingBox = createVBox('ag-context-card', 6);
+            loadingBox.style = 'padding: 20px;';
+
             const emptyLabel = new St.Label({
                 text: 'Carregando métricas do Antigravity...',
+                style_class: 'ag-header-title',
+                x_align: Clutter.ActorAlign.CENTER,
+            });
+            loadingBox.add_child(emptyLabel);
+
+            const hintLabel = new St.Label({
+                text: 'Coletando quotas, tokens e swarm em segundo plano...',
                 style_class: 'ag-session-title',
                 x_align: Clutter.ActorAlign.CENTER,
             });
-            this._contentBox.add_child(emptyLabel);
+            loadingBox.add_child(hintLabel);
+
+            this._contentBox.add_child(loadingBox);
             return;
         }
 
         // ================= 1. HEADER =================
-        const headerBox = new St.BoxLayout({
-            style_class: 'ag-header-box',
-            x_expand: true,
-            y_align: Clutter.ActorAlign.CENTER,
-        });
+        const headerBox = createHBox('ag-header-box', 8);
 
-        const titleBox = new St.BoxLayout({
-            spacing: 8,
-            y_align: Clutter.ActorAlign.CENTER,
-            x_expand: true,
-        });
+        const titleBox = createHBox(null, 8);
+        titleBox.x_expand = true;
 
         const titleLabel = new St.Label({
             text: 'Antigravity View Usage',
@@ -490,15 +500,9 @@ const AntigravityIndicator = GObject.registerClass({
             const currentPinned = this._prefs.pinned_group || 'auto';
 
             for (const group of data.quota_groups) {
-                const groupCard = new St.BoxLayout({
-                    style_class: 'ag-group-card',
-                    vertical: true,
-                });
+                const groupCard = createVBox('ag-group-card');
 
-                const groupHeader = new St.BoxLayout({
-                    x_expand: true,
-                    y_align: Clutter.ActorAlign.CENTER,
-                });
+                const groupHeader = createHBox();
 
                 const groupNameLabel = new St.Label({
                     text: group.name,
@@ -531,11 +535,7 @@ const AntigravityIndicator = GObject.registerClass({
 
                 if (Array.isArray(group.buckets)) {
                     for (const bucket of group.buckets) {
-                        const bucketRow = new St.BoxLayout({
-                            style_class: 'ag-bucket-row',
-                            x_expand: true,
-                            y_align: Clutter.ActorAlign.CENTER,
-                        });
+                        const bucketRow = createHBox('ag-bucket-row');
 
                         const bucketLabel = new St.Label({
                             text: bucket.label || bucket.id,
@@ -553,12 +553,9 @@ const AntigravityIndicator = GObject.registerClass({
                         groupCard.add_child(bucketRow);
 
                         // Visual progress bar
-                        const track = new St.BoxLayout({
-                            style_class: 'ag-bar-track',
-                            x_expand: true,
-                        });
+                        const track = createHBox('ag-bar-track');
 
-                        const fillWidth = Math.max(4, Math.round((pct / 100) * 360));
+                        const fillWidth = Math.max(6, Math.round((pct / 100) * 360));
                         let fillClass = 'ag-bar-fill-healthy';
                         if (pct < 20) {
                             fillClass = 'ag-bar-fill-critical';
@@ -569,6 +566,9 @@ const AntigravityIndicator = GObject.registerClass({
                         const fill = new St.Widget({
                             style_class: fillClass,
                             width: fillWidth,
+                            height: 6,
+                            x_expand: false,
+                            y_expand: false,
                         });
                         track.add_child(fill);
                         groupCard.add_child(track);
@@ -586,10 +586,7 @@ const AntigravityIndicator = GObject.registerClass({
         });
         this._contentBox.add_child(contextTitle);
 
-        const contextCard = new St.BoxLayout({
-            style_class: 'ag-context-card',
-            vertical: true,
-        });
+        const contextCard = createVBox('ag-context-card');
 
         const projName = data.active_context?.project_name || 'Fora de projeto';
         const projLabel = new St.Label({
@@ -613,10 +610,8 @@ const AntigravityIndicator = GObject.registerClass({
         contextCard.add_child(totalCtxLabel);
 
         // Chips for In / Cache / Out
-        const chipsBox = new St.BoxLayout({
-            spacing: 6,
-            style: 'margin-top: 6px;',
-        });
+        const chipsBox = createHBox(null, 6);
+        chipsBox.style = 'margin-top: 6px;';
 
         const inTokens = (data.active_context?.input_tokens || 0).toLocaleString();
         const inChip = new St.Label({
@@ -653,12 +648,7 @@ const AntigravityIndicator = GObject.registerClass({
 
         if (Array.isArray(data.swarm?.agents) && data.swarm.agents.length > 0) {
             for (const agent of data.swarm.agents) {
-                const agentRow = new St.BoxLayout({
-                    style_class: 'ag-agent-item',
-                    spacing: 8,
-                    x_expand: true,
-                    y_align: Clutter.ActorAlign.CENTER,
-                });
+                const agentRow = createHBox('ag-agent-item', 8);
 
                 const nameLabel = new St.Label({
                     text: agent.name,
@@ -701,10 +691,7 @@ const AntigravityIndicator = GObject.registerClass({
         this._contentBox.add_child(monthTitle);
 
         // 3 Cards layout
-        const tokenCardsBox = new St.BoxLayout({
-            spacing: 6,
-            x_expand: true,
-        });
+        const tokenCardsBox = createHBox(null, 6);
 
         const cards = [
             { title: 'INPUT', val: data.monthly_tokens?.input_formatted || '0' },
@@ -713,11 +700,7 @@ const AntigravityIndicator = GObject.registerClass({
         ];
 
         for (const card of cards) {
-            const cBox = new St.BoxLayout({
-                style_class: 'ag-token-card',
-                vertical: true,
-                x_expand: true,
-            });
+            const cBox = createVBox('ag-token-card');
             const tLabel = new St.Label({
                 text: card.title,
                 style_class: 'ag-token-title',
@@ -743,15 +726,9 @@ const AntigravityIndicator = GObject.registerClass({
             this._contentBox.add_child(projHeading);
 
             for (const proj of data.projects) {
-                const pBox = new St.BoxLayout({
-                    style_class: 'ag-project-item',
-                    vertical: true,
-                });
+                const pBox = createVBox('ag-project-item');
 
-                const pTop = new St.BoxLayout({
-                    x_expand: true,
-                    y_align: Clutter.ActorAlign.CENTER,
-                });
+                const pTop = createHBox();
 
                 const pName = new St.Label({
                     text: proj.name,
