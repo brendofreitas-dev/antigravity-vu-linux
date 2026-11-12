@@ -10,9 +10,9 @@ import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
 export default class AntigravityExtension extends Extension {
     async enable() {
         try {
-            // Dynamic import with timestamp query parameter busts the GJS module cache,
-            // allowing hot-reloading code changes without logging out of the Wayland session!
-            const moduleUrl = `${this.path}/island.js?t=${Date.now()}`;
+            // Dynamic import with file:// URI scheme and timestamp query parameter busts the GJS module cache,
+            // allowing true hot-reloading of code changes without logging out of the Wayland session!
+            const moduleUrl = `file://${this.path}/island.js?t=${Date.now()}`;
             const { initIsland, disableIsland } = await import(moduleUrl);
             this._disableIsland = disableIsland;
             this._indicator = await initIsland(this);

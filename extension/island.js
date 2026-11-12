@@ -55,11 +55,11 @@ function createHBox(styleClass = null, spacing = 0) {
 }
 
 function formatShortGroupName(groupName, groupId) {
-    if (!groupName) return '⚡';
+    if (!groupName && !groupId) return '⚡';
     const gid = (groupId || '').toLowerCase();
-    const gname = groupName.toLowerCase();
+    const gname = (groupName || '').replace(/\u00a0/g, ' ').toLowerCase();
 
-    if (gid === 'gemini' || gname.includes('gemini models') || (gname.includes('gemini') && !gname.includes('argon'))) {
+    if (gid === 'gemini' || gname.includes('gemini 3.8') || gname.includes('gemini models') || (gname.includes('gemini') && !gname.includes('argon'))) {
         return 'Gemini 3.8';
     }
     if (gid === 'argon' || gname.includes('argon')) {
@@ -69,7 +69,8 @@ function formatShortGroupName(groupName, groupId) {
         return 'Claude/GPT';
     }
 
-    return groupName
+    return (groupName || '')
+        .replace(/\u00a0/g, ' ')
         .replace(/gemini/i, '')
         .replace(/models/i, '')
         .replace(/and/i, '')
@@ -79,15 +80,15 @@ function formatShortGroupName(groupName, groupId) {
 
 function formatDisplayGroupName(group) {
     const gid = (group.id || '').toLowerCase();
-    const gname = (group.name || '').toLowerCase();
+    const gname = (group.name || '').replace(/\u00a0/g, ' ').toLowerCase();
 
-    if (gid === 'gemini' || gname.includes('gemini models')) {
+    if (gid === 'gemini' || gname.includes('gemini models') || gname.includes('gemini 3.8')) {
         return 'Gemini 3.8 (Flash / Pro)';
     }
     if (gid === 'argon' || gname.includes('argon')) {
         return 'Gemini 4 Argon';
     }
-    if (gid === '3p' || gname.includes('claude')) {
+    if (gid === '3p' || gname.includes('claude') || gname.includes('gpt')) {
         return 'Claude & GPT Models';
     }
     return group.name;
