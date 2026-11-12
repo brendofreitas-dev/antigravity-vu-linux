@@ -138,6 +138,35 @@ class TestQuotaTransformation(unittest.TestCase):
         self.assertEqual(primary["group"], "Gemini\u00a03.8")
         self.assertAlmostEqual(primary["remaining_pct"], 65.0, places=1)
 
+    def test_pinned_group_most_restrictive_bucket(self):
+        # When 5h bucket is more restrictive than weekly within a pinned group
+        mock_raw = {
+            "groups": [
+                {
+                    "displayName": "Claude and GPT models",
+                    "buckets": [
+                        {
+                            "bucketId": "3p-weekly",
+                            "window": "weekly",
+                            "remainingFraction": 0.40,
+                            "resetTime": "2026-11-19T13:00:00Z",
+                        },
+                        {
+                            "bucketId": "3p-5h",
+                            "window": "5h",
+                            "remainingFraction": 0.05,
+                            "resetTime": "2026-11-12T18:00:00Z",
+                        },
+                    ],
+                }
+            ]
+        }
+        primary, _ = self.collector.transform_quota_groups(mock_raw, pinned_group_pref="3p")
+        self.assertEqual(primary["group"], "Claude / GPT")
+        self.assertEqual(primary["window"], "5h")
+        self.assertAlmostEqual(primary["remaining_pct"], 5.0, places=1)
+        self.assertEqual(primary["status_level"], "critical")
+
     def test_empty_quota_fallback(self):
         primary, groups = self.collector.transform_quota_groups(None, pinned_group_pref="auto")
         self.assertEqual(primary["group"], "Gemini 4 Argon")

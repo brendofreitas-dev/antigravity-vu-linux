@@ -257,14 +257,39 @@ class AntigravityCollector:
             "gemini 4 argon": "argon",
         }
 
-        # Friendly display names:
-        # "Gemini\u00a03.8" uses Non-Breaking Space (\u00a0) so any old JS in memory doing
-        # .replace('Gemini ', '') will NOT strip "Gemini", ensuring both old and new JS
-        # immediately display "Gemini 3.8 <pct>%" on the Top Bar without needing a logout!
-        group_display_map = {
-            "gemini": "Gemini\u00a03.8",
-            "3p": "Claude / GPT",
-            "argon": "Gemini 4 Argon",
+        # Rich group metadata defining official display names, subtitles, and models:
+        # Note: "pill_name" uses Non-Breaking Space (\u00a0) where appropriate so legacy
+        # in-memory JS instances doing .replace('Gemini ', '') will not strip "Gemini".
+        group_meta = {
+            "gemini": {
+                "name": "Gemini 3.8 & 4 Hydrogen",
+                "pill_name": "Gemini\u00a03.8",
+                "description": "Gemini 3.8 Flash, Gemini 4 Hydrogen, Gemini 3.5 Lite",
+                "models": [
+                    "Gemini 3.8 Flash",
+                    "Gemini 4 Hydrogen",
+                    "Gemini 3.5 Flash Lite",
+                    "Gemini 2.5 Pro",
+                ],
+            },
+            "argon": {
+                "name": "Gemini 4 Argon",
+                "pill_name": "Gemini 4 Argon",
+                "description": "Gemini 4 Argon (Weekly WTU Quota)",
+                "models": [
+                    "Gemini 4 Argon",
+                ],
+            },
+            "3p": {
+                "name": "Claude & GPT (Opus / Sonnet / GPT)",
+                "pill_name": "Claude / GPT",
+                "description": "Claude Opus 5.5, Claude Sonnet 5.5, GPT-OSS 120B",
+                "models": [
+                    "Claude Opus 5.5",
+                    "Claude Sonnet 5.5",
+                    "GPT-OSS 120B",
+                ],
+            },
         }
 
         lowest_bucket = None
@@ -273,7 +298,14 @@ class AntigravityCollector:
         for grp in quota_raw.get("groups", []):
             raw_name = grp.get("displayName", "Unknown")
             g_id = group_id_map.get(raw_name.lower().strip(), re.sub(r"[^a-z0-9]+", "-", raw_name.lower()))
-            g_name = group_display_map.get(g_id, raw_name)
+            meta = group_meta.get(g_id, {
+                "name": raw_name,
+                "pill_name": raw_name,
+                "description": raw_name,
+                "models": [],
+            })
+            g_name = meta["name"]
+            g_pill = meta["pill_name"]
             buckets_out = []
 
             for b in grp.get("buckets", []):
@@ -296,7 +328,8 @@ class AntigravityCollector:
                 buckets_out.append(bucket_dict)
 
                 candidate = {
-                    "group": g_name,
+                    "group": g_pill,
+                    "group_name": g_name,
                     "group_id": g_id,
                     "window": b_window,
                     "remaining_pct": rem_pct,
@@ -309,19 +342,25 @@ class AntigravityCollector:
 
                 # Exact ID match takes top priority, fallback to substring if not yet matched
                 is_exact_match = (pinned_group_pref.lower() == g_id.lower())
-                is_sub_match = (pinned_group_pref.lower() in g_name.lower())
+                is_sub_match = (pinned_group_pref.lower() in g_name.lower()) or (pinned_group_pref.lower() in g_pill.lower())
                 if pinned_group_pref != "auto" and (is_exact_match or is_sub_match):
                     # Prefer exact match over substring match
                     if pinned_candidate is None:
                         pinned_candidate = candidate
                     elif is_exact_match and (pinned_candidate.get("group_id") != g_id):
                         pinned_candidate = candidate
-                    elif (pinned_candidate.get("group_id") == g_id) and (b_window == "weekly"):
-                        pinned_candidate = candidate
+                    elif pinned_candidate.get("group_id") == g_id:
+                        # Within the pinned group, select the most restrictive bucket (lowest remaining_pct)
+                        if rem_pct < pinned_candidate["remaining_pct"]:
+                            pinned_candidate = candidate
+                        elif rem_pct == pinned_candidate["remaining_pct"] and b_window == "5h":
+                            pinned_candidate = candidate
 
             groups_out.append({
                 "name": g_name,
                 "id": g_id,
+                "description": meta["description"],
+                "models": meta["models"],
                 "buckets": buckets_out,
             })
 
