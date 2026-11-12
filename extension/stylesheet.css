@@ -9,7 +9,7 @@
 
 /* Unified Dynamic Island Capsule (when wrapping Main.panel._centerBox) - Native Ubuntu Top Bar Integration */
 .ag-unified-island-capsule {
-    border-radius: 999px;
+    border-radius: 8px !important;
     border: 3px solid transparent !important;
     background-color: transparent !important;
     background: none !important;
@@ -23,15 +23,15 @@
 .ag-unified-island-capsule:hover {
     background-color: transparent !important;
     border: 3px solid transparent !important;
-    border-radius: 999px !important;
-    box-shadow: inset 0 0 0 100px rgba(255, 255, 255, 0.17) !important;
+    border-radius: 8px !important;
+    box-shadow: inset 0 0 0 100px rgba(255, 255, 255, 0.14) !important;
 }
 
 .ag-unified-island-capsule:active {
     background-color: transparent !important;
     border: 3px solid transparent !important;
-    border-radius: 999px !important;
-    box-shadow: inset 0 0 0 100px rgba(255, 255, 255, 0.28) !important;
+    border-radius: 8px !important;
+    box-shadow: inset 0 0 0 100px rgba(255, 255, 255, 0.25) !important;
 }
 
 /* Neutralize ALL native GNOME / Yaru panel-button hover, focus, active styles inside capsule */
@@ -91,7 +91,7 @@
 .ag-island-pill {
     background-color: transparent;
     border: 3px solid transparent;
-    border-radius: 999px;
+    border-radius: 8px;
     padding: 0 8px;
     margin: 0;
     box-shadow: inset 0 0 0 100px transparent;
@@ -100,7 +100,7 @@
 }
 
 .ag-island-pill:hover {
-    box-shadow: inset 0 0 0 100px rgba(255, 255, 255, 0.17);
+    box-shadow: inset 0 0 0 100px rgba(255, 255, 255, 0.14);
 }
 
 /* Left Half: Date/Time in Monolithic Island (No vertical border, harmonious padding) */
@@ -160,15 +160,15 @@
 .ag-theme-light.ag-unified-island-capsule:hover {
     background-color: transparent !important;
     border: 3px solid transparent !important;
-    border-radius: 999px !important;
-    box-shadow: inset 0 0 0 100px rgba(255, 255, 255, 0.17) !important;
+    border-radius: 8px !important;
+    box-shadow: inset 0 0 0 100px rgba(255, 255, 255, 0.14) !important;
 }
 
 .ag-theme-light.ag-unified-island-capsule:active {
     background-color: transparent !important;
     border: 3px solid transparent !important;
-    border-radius: 999px !important;
-    box-shadow: inset 0 0 0 100px rgba(255, 255, 255, 0.28) !important;
+    border-radius: 8px !important;
+    box-shadow: inset 0 0 0 100px rgba(255, 255, 255, 0.25) !important;
 }
 
 .ag-theme-light.ag-unified-island-capsule .ag-island-pill,
@@ -274,41 +274,6 @@
     color: #f8fafc !important;
 }
 
-.ag-island-hover-details {
-    spacing: 6px;
-    margin: 0;
-    padding: 0;
-    y-align: center;
-}
-
-.ag-hover-sep {
-    color: rgba(255, 255, 255, 0.35) !important;
-    font-size: 9pt;
-}
-
-.ag-theme-light .ag-hover-sep {
-    color: rgba(255, 255, 255, 0.35) !important;
-}
-
-.ag-hover-text {
-    font-size: 9.5pt;
-    color: #cbd5e1 !important;
-    font-weight: 600;
-}
-
-.ag-theme-light .ag-hover-text {
-    color: #cbd5e1 !important;
-}
-
-.ag-hover-swarm {
-    font-size: 9.5pt;
-    font-weight: 700;
-    color: #38bdf8;
-}
-
-.ag-theme-light .ag-hover-swarm {
-    color: #38bdf8;
-}
 
 /* ==========================================================================
    4. POPUP MENU DASHBOARD (Exact Ubuntu Yaru Palette & Calendar Integration)
@@ -478,26 +443,40 @@
     opacity: 0.90;
 }
 
-.ag-pin-btn {
+/* Discrete Color Legend */
+.ag-color-legend {
+    margin-top: 4px;
+    margin-bottom: 6px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    background-color: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.ag-theme-light .ag-color-legend {
+    background-color: rgba(0, 0, 0, 0.03);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.ag-legend-item {
     font-size: 8pt;
-    padding: 2px 6px;
-    border-radius: 5px;
-    background-color: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.10);
-    color: #cbd5e1;
+    font-weight: 600;
 }
 
-.ag-theme-light .ag-pin-btn {
-    background-color: rgba(0, 0, 0, 0.05);
-    border: 1px solid rgba(0, 0, 0, 0.08);
-    color: #475569;
+.ag-legend-healthy {
+    color: #22c55e;
 }
 
-.ag-pin-btn-active {
-    background-color: rgba(59, 130, 246, 0.25);
-    border: 1px solid rgba(59, 130, 246, 0.45);
-    color: #60a5fa;
-    font-weight: 700;
+.ag-legend-warning {
+    color: #f59e0b;
+}
+
+.ag-legend-critical {
+    color: #ef4444;
+}
+
+.ag-legend-working {
+    color: #38bdf8;
 }
 
 .ag-bucket-row {
@@ -774,64 +753,46 @@
    ========================================================================== */
 
 /* Blue (Default / Yaru Blue) */
-.ag-accent-blue .ag-hover-swarm { color: #3b82f6; }
 .ag-accent-blue .ag-project-title { color: #3b82f6; }
 .ag-accent-blue .ag-project-tokens { color: #3b82f6; }
 .ag-accent-blue .ag-tier-badge { background-color: rgba(59, 130, 246, 0.20); border-color: rgba(59, 130, 246, 0.40); color: #3b82f6; }
-.ag-accent-blue .ag-pin-btn-active { background-color: rgba(59, 130, 246, 0.20); border-color: rgba(59, 130, 246, 0.40); color: #3b82f6; }
 
 /* Orange (Ubuntu Signature) */
-.ag-accent-orange .ag-hover-swarm { color: #e95420; }
 .ag-accent-orange .ag-project-title { color: #e95420; }
 .ag-accent-orange .ag-project-tokens { color: #e95420; }
 .ag-accent-orange .ag-tier-badge { background-color: rgba(233, 84, 32, 0.20); border-color: rgba(233, 84, 32, 0.40); color: #e95420; }
-.ag-accent-orange .ag-pin-btn-active { background-color: rgba(233, 84, 32, 0.20); border-color: rgba(233, 84, 32, 0.40); color: #e95420; }
 
 /* Purple (Ubuntu Purple) */
-.ag-accent-purple .ag-hover-swarm { color: #8b5cf6; }
 .ag-accent-purple .ag-project-title { color: #8b5cf6; }
 .ag-accent-purple .ag-project-tokens { color: #8b5cf6; }
 .ag-accent-purple .ag-tier-badge { background-color: rgba(139, 92, 246, 0.20); border-color: rgba(139, 92, 246, 0.40); color: #8b5cf6; }
-.ag-accent-purple .ag-pin-btn-active { background-color: rgba(139, 92, 246, 0.20); border-color: rgba(139, 92, 246, 0.40); color: #8b5cf6; }
 
 /* Green */
-.ag-accent-green .ag-hover-swarm { color: #10b981; }
 .ag-accent-green .ag-project-title { color: #10b981; }
 .ag-accent-green .ag-project-tokens { color: #10b981; }
 .ag-accent-green .ag-tier-badge { background-color: rgba(16, 185, 129, 0.20); border-color: rgba(16, 185, 129, 0.40); color: #10b981; }
-.ag-accent-green .ag-pin-btn-active { background-color: rgba(16, 185, 129, 0.20); border-color: rgba(16, 185, 129, 0.40); color: #10b981; }
 
 /* Red */
-.ag-accent-red .ag-hover-swarm { color: #ef4444; }
 .ag-accent-red .ag-project-title { color: #ef4444; }
 .ag-accent-red .ag-project-tokens { color: #ef4444; }
 .ag-accent-red .ag-tier-badge { background-color: rgba(239, 68, 68, 0.20); border-color: rgba(239, 68, 68, 0.40); color: #ef4444; }
-.ag-accent-red .ag-pin-btn-active { background-color: rgba(239, 68, 68, 0.20); border-color: rgba(239, 68, 68, 0.40); color: #ef4444; }
 
 /* Yellow */
-.ag-accent-yellow .ag-hover-swarm { color: #f59e0b; }
 .ag-accent-yellow .ag-project-title { color: #f59e0b; }
 .ag-accent-yellow .ag-project-tokens { color: #f59e0b; }
 .ag-accent-yellow .ag-tier-badge { background-color: rgba(245, 158, 11, 0.20); border-color: rgba(245, 158, 11, 0.40); color: #f59e0b; }
-.ag-accent-yellow .ag-pin-btn-active { background-color: rgba(245, 158, 11, 0.20); border-color: rgba(245, 158, 11, 0.40); color: #f59e0b; }
 
 /* Teal */
-.ag-accent-teal .ag-hover-swarm { color: #0d9488; }
 .ag-accent-teal .ag-project-title { color: #0d9488; }
 .ag-accent-teal .ag-project-tokens { color: #0d9488; }
 .ag-accent-teal .ag-tier-badge { background-color: rgba(13, 148, 136, 0.20); border-color: rgba(13, 148, 136, 0.40); color: #0d9488; }
-.ag-accent-teal .ag-pin-btn-active { background-color: rgba(13, 148, 136, 0.20); border-color: rgba(13, 148, 136, 0.40); color: #0d9488; }
 
 /* Pink */
-.ag-accent-pink .ag-hover-swarm { color: #ec4899; }
 .ag-accent-pink .ag-project-title { color: #ec4899; }
 .ag-accent-pink .ag-project-tokens { color: #ec4899; }
 .ag-accent-pink .ag-tier-badge { background-color: rgba(236, 72, 153, 0.20); border-color: rgba(236, 72, 153, 0.40); color: #ec4899; }
-.ag-accent-pink .ag-pin-btn-active { background-color: rgba(236, 72, 153, 0.20); border-color: rgba(236, 72, 153, 0.40); color: #ec4899; }
 
 /* Slate */
-.ag-accent-slate .ag-hover-swarm { color: #64748b; }
 .ag-accent-slate .ag-project-title { color: #64748b; }
 .ag-accent-slate .ag-project-tokens { color: #64748b; }
 .ag-accent-slate .ag-tier-badge { background-color: rgba(100, 116, 139, 0.20); border-color: rgba(100, 116, 139, 0.40); color: #64748b; }
-.ag-accent-slate .ag-pin-btn-active { background-color: rgba(100, 116, 139, 0.20); border-color: rgba(100, 116, 139, 0.40); color: #64748b; }

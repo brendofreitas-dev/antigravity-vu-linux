@@ -17,7 +17,6 @@ import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 
 const POLL_INTERVAL_SECONDS = 5;
-const AUTO_PEEK_DURATION_MS = 4000;
 
 function createVBox(styleClass = null, spacing = 0) {
     const box = new St.BoxLayout({
@@ -121,43 +120,7 @@ function formatDisplayGroupName(group) {
     return group.name;
 }
 
-function loadPrefs() {
-    try {
-        const configDir = GLib.build_filenamev([GLib.get_user_config_dir(), 'antigravity-vu']);
-        const configFile = GLib.build_filenamev([configDir, 'prefs.json']);
-        if (GLib.file_test(configFile, GLib.FileTest.EXISTS)) {
-            const [ok, contents] = GLib.file_get_contents(configFile);
-            if (ok) {
-                const decoder = new TextDecoder('utf-8');
-                return JSON.parse(decoder.decode(contents));
-            }
-        }
-    } catch (e) {
-        console.warn(`[Antigravity-vU] Could not load prefs: ${e.message}`);
-    }
-    return { pinned_group: 'auto' };
-}
-
-function savePrefs(prefs) {
-    try {
-        const configDir = GLib.build_filenamev([GLib.get_user_config_dir(), 'antigravity-vu']);
-        GLib.mkdir_with_parents(configDir, 0o755);
-        const configFile = GLib.build_filenamev([configDir, 'prefs.json']);
-        const file = Gio.File.new_for_path(configFile);
-        const jsonStr = JSON.stringify(prefs, null, 2);
-        file.replace_contents(
-            jsonStr,
-            null,
-            false,
-            Gio.FileCreateFlags.REPLACE_DESTINATION,
-            null
-        );
-    } catch (e) {
-        console.warn(`[Antigravity-vU] Could not save prefs: ${e.message}`);
-    }
-}
-
-function resolveCollectorCmd(extensionPath, pinnedGroup) {
+function resolveCollectorCmd(extensionPath) {
     const home = GLib.get_home_dir();
     const localBin = GLib.build_filenamev([home, '.local', 'bin', 'ag-vu']);
 
@@ -194,10 +157,6 @@ function resolveCollectorCmd(extensionPath, pinnedGroup) {
     }
 
     cmd.push('--json');
-    if (pinnedGroup && pinnedGroup !== 'auto') {
-        cmd.push('--pin-group', pinnedGroup);
-    }
-
     return cmd;
 }
 
@@ -210,11 +169,7 @@ export const AntigravityIndicator = GObject.registerClass({
         this._extension = extension;
         this._cancellable = new Gio.Cancellable();
         this._timerId = 0;
-        this._autoPeekTimerId = 0;
-        this._autoPeekActive = false;
-        this._lastIsWorking = false;
         this._lastData = null;
-        this._prefs = loadPrefs();
         this._isRefreshing = false;
 
         this.add_style_class_name('ag-panel-button');
@@ -224,9 +179,6 @@ export const AntigravityIndicator = GObject.registerClass({
 
         this._buildPill();
         this._buildMenuShell();
-
-        // Connect hover on our pill
-        this._pillBox.connect('notify::hover', () => this._onHoverChanged());
 
         // Connect menu state to re-render when opening
         this.menu.connect('open-state-changed', (menu, isOpen) => {
@@ -258,7 +210,6 @@ export const AntigravityIndicator = GObject.registerClass({
     _buildPill() {
         this._pillBox = createHBox('ag-island-pill', 6);
         this._pillBox.reactive = true;
-        this._pillBox.track_hover = true;
         this._pillBox.can_focus = true;
         this._pillBox.y_align = Clutter.ActorAlign.CENTER;
         this._pillBox.y_expand = true;
@@ -279,42 +230,6 @@ export const AntigravityIndicator = GObject.registerClass({
         });
         this._pillBox.add_child(this._quotaLabel);
 
-        // Hover & Auto-peek details container (Dynamic Island expanded mode)
-        this._hoverDetails = createHBox('ag-island-hover-details', 6);
-        this._hoverDetails.visible = false;
-        this._hoverDetails.opacity = 0;
-        this._hoverDetails.y_align = Clutter.ActorAlign.CENTER;
-        this._hoverDetails.y_expand = true;
-
-        const sep1 = new St.Label({
-            text: '•',
-            style_class: 'ag-hover-sep',
-            y_align: Clutter.ActorAlign.CENTER,
-        });
-        this._hoverDetails.add_child(sep1);
-
-        this._hoverCtxLabel = new St.Label({
-            text: 'Ctx: --',
-            style_class: 'ag-hover-text',
-            y_align: Clutter.ActorAlign.CENTER,
-        });
-        this._hoverDetails.add_child(this._hoverCtxLabel);
-
-        const sep2 = new St.Label({
-            text: '•',
-            style_class: 'ag-hover-sep',
-            y_align: Clutter.ActorAlign.CENTER,
-        });
-        this._hoverDetails.add_child(sep2);
-
-        this._hoverSwarmLabel = new St.Label({
-            text: '⚡ 0 ag',
-            style_class: 'ag-hover-swarm',
-            y_align: Clutter.ActorAlign.CENTER,
-        });
-        this._hoverDetails.add_child(this._hoverSwarmLabel);
-
-        this._pillBox.add_child(this._hoverDetails);
         this.add_child(this._pillBox);
     }
 
@@ -335,13 +250,6 @@ export const AntigravityIndicator = GObject.registerClass({
         this._centerBox = Main.panel._centerBox;
         if (this._centerBox) {
             this._centerBox.add_style_class_name('ag-unified-island-capsule');
-            this._centerBox.reactive = true;
-            this._centerBox.track_hover = true;
-
-            // Hover on any part of the capsule expands the island
-            this._centerBoxHoverId = this._centerBox.connect('notify::hover', () => {
-                this._onHoverChanged();
-            });
         }
 
         // Add class to dateMenu for seamless pill edge and divider
@@ -355,10 +263,6 @@ export const AntigravityIndicator = GObject.registerClass({
 
     _removeUnifiedIsland() {
         if (this._centerBox) {
-            if (this._centerBoxHoverId) {
-                this._centerBox.disconnect(this._centerBoxHoverId);
-                this._centerBoxHoverId = 0;
-            }
             this._centerBox.remove_style_class_name('ag-unified-island-capsule');
             this._centerBox.remove_style_class_name('ag-theme-dark');
             this._centerBox.remove_style_class_name('ag-theme-light');
@@ -464,80 +368,6 @@ export const AntigravityIndicator = GObject.registerClass({
     }
 
     /* =========================================================================
-       Hover & Dynamic Island Morphing
-       ========================================================================= */
-
-    _onHoverChanged() {
-        const isHovered = (this._centerBox && this._centerBox.hover) || this._pillBox.hover;
-        if (isHovered) {
-            if (this._autoPeekTimerId) {
-                GLib.source_remove(this._autoPeekTimerId);
-                this._autoPeekTimerId = 0;
-            }
-            this._hoverDetails.visible = true;
-            this._hoverDetails.ease({
-                opacity: 255,
-                duration: 200,
-                mode: Clutter.AnimationMode.EASE_OUT_QUAD,
-            });
-        } else {
-            if (this._autoPeekActive) {
-                return;
-            }
-            this._hoverDetails.ease({
-                opacity: 0,
-                duration: 180,
-                mode: Clutter.AnimationMode.EASE_OUT_QUAD,
-                onComplete: () => {
-                    const stillHovered = (this._centerBox && this._centerBox.hover) || this._pillBox.hover;
-                    if (!stillHovered && !this._autoPeekActive) {
-                        this._hoverDetails.visible = false;
-                    }
-                },
-            });
-        }
-    }
-
-    _triggerAutoPeek(durationMs) {
-        if (this._autoPeekTimerId) {
-            GLib.source_remove(this._autoPeekTimerId);
-            this._autoPeekTimerId = 0;
-        }
-
-        this._autoPeekActive = true;
-        this._hoverDetails.visible = true;
-        this._hoverDetails.ease({
-            opacity: 255,
-            duration: 250,
-            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
-        });
-
-        this._autoPeekTimerId = GLib.timeout_add(
-            GLib.PRIORITY_DEFAULT,
-            durationMs,
-            () => {
-                this._autoPeekTimerId = 0;
-                this._autoPeekActive = false;
-                const isHovered = (this._centerBox && this._centerBox.hover) || this._pillBox.hover;
-                if (!isHovered) {
-                    this._hoverDetails.ease({
-                        opacity: 0,
-                        duration: 250,
-                        mode: Clutter.AnimationMode.EASE_OUT_QUAD,
-                        onComplete: () => {
-                            const stillHovered = (this._centerBox && this._centerBox.hover) || this._pillBox.hover;
-                            if (!stillHovered && !this._autoPeekActive) {
-                                this._hoverDetails.visible = false;
-                            }
-                        },
-                    });
-                }
-                return GLib.SOURCE_REMOVE;
-            }
-        );
-    }
-
-    /* =========================================================================
        Data Fetching & Subprocess Communication
        ========================================================================= */
 
@@ -547,7 +377,7 @@ export const AntigravityIndicator = GObject.registerClass({
         }
 
         this._isRefreshing = true;
-        const cmd = resolveCollectorCmd(this._extension.path, this._prefs.pinned_group);
+        const cmd = resolveCollectorCmd(this._extension.path);
 
         try {
             const proc = Gio.Subprocess.new(
@@ -586,12 +416,6 @@ export const AntigravityIndicator = GObject.registerClass({
 
         const isWorking = !!(data.swarm?.is_working);
 
-        // Check if working transitioned from false to true -> Morphing Auto-Peek!
-        if (!this._lastIsWorking && isWorking) {
-            this._triggerAutoPeek(AUTO_PEEK_DURATION_MS);
-        }
-        this._lastIsWorking = isWorking;
-
         // Update dot status class
         this._statusDot.remove_style_class_name('ag-dot-working');
         this._statusDot.remove_style_class_name('ag-dot-healthy');
@@ -601,27 +425,9 @@ export const AntigravityIndicator = GObject.registerClass({
         let remainingPct = 100;
         let quotaLabelText = '⚡ --%';
 
-        // Check pinned group vs primary_quota
-        const pinned = this._prefs.pinned_group || 'auto';
-        let targetGroup = null;
-
-        if (pinned !== 'auto' && Array.isArray(data.quota_groups)) {
-            targetGroup = data.quota_groups.find(g => g.id === pinned || g.name.toLowerCase().includes(pinned.toLowerCase()));
-        }
-
         const activeModel = data.active_context?.active_model || '';
 
-        if (targetGroup && targetGroup.buckets && targetGroup.buckets.length > 0) {
-            const b = targetGroup.buckets.reduce((lowest, curr) => {
-                if (!lowest) return curr;
-                const lowestPct = Number(lowest.remaining_pct ?? 100);
-                const currPct = Number(curr.remaining_pct ?? 100);
-                return currPct < lowestPct ? curr : lowest;
-            }, targetGroup.buckets[0]);
-            remainingPct = b.remaining_pct;
-            const shortName = formatShortGroupName(targetGroup.pill_name || targetGroup.name, targetGroup.id, activeModel);
-            quotaLabelText = `${shortName} ${Math.round(remainingPct)}%`;
-        } else if (data.primary_quota) {
+        if (data.primary_quota) {
             remainingPct = data.primary_quota.remaining_pct;
             const shortName = formatShortGroupName(
                 data.primary_quota.pill_name || data.primary_quota.group,
@@ -642,12 +448,6 @@ export const AntigravityIndicator = GObject.registerClass({
         }
 
         this._quotaLabel.text = quotaLabelText;
-
-        // Update hover details text
-        const ctxFormatted = data.active_context?.context_formatted || '--';
-        const activeAgCount = data.swarm?.active_count || 0;
-        this._hoverCtxLabel.text = `Ctx: ${ctxFormatted}`;
-        this._hoverSwarmLabel.text = `⚡ ${activeAgCount} ag`;
     }
 
     _renderMenuContent() {
@@ -730,8 +530,6 @@ export const AntigravityIndicator = GObject.registerClass({
         this._contentBox.add_child(quotaTitle);
 
         if (Array.isArray(data.quota_groups)) {
-            const currentPinned = this._prefs.pinned_group || 'auto';
-
             for (const group of data.quota_groups) {
                 const groupCard = createVBox('ag-group-card');
 
@@ -745,26 +543,6 @@ export const AntigravityIndicator = GObject.registerClass({
                     y_align: Clutter.ActorAlign.CENTER,
                 });
                 groupHeader.add_child(groupNameLabel);
-
-                const isPinned = currentPinned === group.id;
-                const pinBtn = new St.Button({
-                    label: isPinned ? '📌 Fixado' : '📌 Fixar',
-                    style_class: isPinned ? 'ag-pin-btn ag-pin-btn-active' : 'ag-pin-btn',
-                    can_focus: true,
-                });
-
-                pinBtn.connect('clicked', () => {
-                    if (isPinned) {
-                        this._prefs.pinned_group = 'auto';
-                    } else {
-                        this._prefs.pinned_group = group.id;
-                    }
-                    savePrefs(this._prefs);
-                    this._updatePill(this._lastData);
-                    this._renderMenuContent();
-                });
-
-                groupHeader.add_child(pinBtn);
                 groupCard.add_child(groupHeader);
 
                 if (group.description) {
@@ -819,6 +597,27 @@ export const AntigravityIndicator = GObject.registerClass({
 
                 this._contentBox.add_child(groupCard);
             }
+
+            // Discrete Color Legend
+            const legendBox = createHBox('ag-color-legend', 10);
+            legendBox.x_align = Clutter.ActorAlign.CENTER;
+
+            const legendItems = [
+                { text: '● ≥50% Normal', class: 'ag-legend-healthy' },
+                { text: '● 20-49% Atenção', class: 'ag-legend-warning' },
+                { text: '● <20% Crítico', class: 'ag-legend-critical' },
+                { text: '● Agente Ativo', class: 'ag-legend-working' },
+            ];
+
+            for (const item of legendItems) {
+                const lbl = new St.Label({
+                    text: item.text,
+                    style_class: `ag-legend-item ${item.class}`,
+                    y_align: Clutter.ActorAlign.CENTER,
+                });
+                legendBox.add_child(lbl);
+            }
+            this._contentBox.add_child(legendBox);
         }
 
         // ================= 3. CONTEXT & SWARM =================
@@ -1038,11 +837,6 @@ export const AntigravityIndicator = GObject.registerClass({
         if (this._timerId) {
             GLib.source_remove(this._timerId);
             this._timerId = 0;
-        }
-
-        if (this._autoPeekTimerId) {
-            GLib.source_remove(this._autoPeekTimerId);
-            this._autoPeekTimerId = 0;
         }
 
         if (this._settingsChangedId && this._desktopSettings) {
