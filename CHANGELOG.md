@@ -7,6 +7,29 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ---
 
+## [1.2.3] - 2026-11-12
+
+### Adicionado
+- **Detecção do modelo ativo real (`detect_active_model`)**:
+  - Extração do modelo em uso e nível (`Gemini 4 Hydrogen (XHigh)`, `Gemini 3.8 Flash (High)`, `Gemini 4 Argon (Low)`, `Claude Opus 5.5 (Low)`) a partir da tabela `gen_metadata` do SQLite da sessão ativa.
+  - Campos `active_model`, `active_model_label` e `active_model_group` incluídos em `active_context`.
+  - Exibição de badge destacado (`🤖 {active_model_label}`) no card de Sessão Ativa & Swarm.
+- **Inteligência do modo Auto (`pinned_group == "auto"`)**:
+  - A cota primária na Top Bar agora acompanha dinamicamente o grupo do modelo ativo na IDE (ex: `4 Hydrogen 48%` ou `Gemini 3.8 48%` ao trabalhar com Hydrogen/Flash), com fallback para o menor bucket apenas se nenhum modelo ativo for detectado.
+- **Versão dinâmica no rodapé**:
+  - O rodapé da extensão consome dinamicamente o campo `"version-name"` do `metadata.json`, eliminando números de versão hardcoded.
+
+### Alterado
+- **Visual nativo translúcido idêntico ao Calendar do Ubuntu**:
+  - Contêiner `.ag-popup-menu` 100% transparente, herdando o fundo translúcido, blur, bordas e sombras nativos de `.popup-menu-content` do GNOME Shell / Yaru Calendar.
+  - Sub-cards adaptados com transparência suave (`rgba(255, 255, 255, 0.06)` no Dark / `rgba(0, 0, 0, 0.045)` no Light).
+- **Cabeçalho distribuído de 420px**:
+  - Título à esquerda com expansão flexível e badges (`[Pro]`, `● Online`, `[↻]`) distribuídos e alinhados à direita, aproveitando toda a largura do menu.
+- **Suíte de testes expandida**:
+  - Novos testes `test_auto_active_model_selection` e `test_detect_active_model_from_db`, alcançando 13/13 testes aprovados.
+
+---
+
 ## [1.2.2] - 2026-11-12
 
 ### Alterado
