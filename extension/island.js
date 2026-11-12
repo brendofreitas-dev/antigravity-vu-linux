@@ -172,10 +172,17 @@ export const AntigravityIndicator = GObject.registerClass({
         this._lastData = null;
         this._isRefreshing = false;
 
+        this._centerBoxHoverId = 0;
+        this._dateMenuHoverId = 0;
+        this._selfHoverId = 0;
+        this._menuStateId = 0;
+        this._dateMenuStateId = 0;
+
         this.add_style_class_name('ag-panel-button');
         this.add_style_class_name('ag-unified-island-indicator');
         this.y_align = Clutter.ActorAlign.CENTER;
         this.y_expand = true;
+        this.track_hover = true;
 
         this._buildPill();
         this._buildMenuShell();
@@ -250,19 +257,59 @@ export const AntigravityIndicator = GObject.registerClass({
         this._centerBox = Main.panel._centerBox;
         if (this._centerBox) {
             this._centerBox.add_style_class_name('ag-unified-island-capsule');
+            this._centerBox.reactive = true;
+            this._centerBox.track_hover = true;
+
+            this._centerBoxHoverId = this._centerBox.connect('notify::hover', () => this._syncCapsuleHover());
         }
 
         // Add class to dateMenu for seamless pill edge and divider
         this._dateMenu = Main.panel.statusArea.dateMenu || Main.panel._dateMenu;
         if (this._dateMenu) {
             this._dateMenu.add_style_class_name('ag-unified-island-date');
+            this._dateMenu.reactive = true;
+            this._dateMenu.track_hover = true;
+
+            this._dateMenuHoverId = this._dateMenu.connect('notify::hover', () => this._syncCapsuleHover());
+            if (this._dateMenu.menu) {
+                this._dateMenuStateId = this._dateMenu.menu.connect('open-state-changed', () => this._syncCapsuleHover());
+            }
+        }
+
+        this.track_hover = true;
+        this._selfHoverId = this.connect('notify::hover', () => this._syncCapsuleHover());
+        if (this.menu) {
+            this._menuStateId = this.menu.connect('open-state-changed', () => this._syncCapsuleHover());
         }
 
         this._applyTheme();
     }
 
+    _syncCapsuleHover() {
+        if (!this._centerBox) return;
+
+        const isHovered = !!(
+            (this._centerBox && this._centerBox.hover) ||
+            (this._dateMenu && this._dateMenu.hover) ||
+            this.hover ||
+            (this.menu && this.menu.isOpen) ||
+            (this._dateMenu && this._dateMenu.menu && this._dateMenu.menu.isOpen)
+        );
+
+        if (isHovered) {
+            this._centerBox.add_style_class_name('ag-capsule-hovered');
+        } else {
+            this._centerBox.remove_style_class_name('ag-capsule-hovered');
+        }
+    }
+
     _removeUnifiedIsland() {
         if (this._centerBox) {
+            if (this._centerBoxHoverId) {
+                this._centerBox.disconnect(this._centerBoxHoverId);
+                this._centerBoxHoverId = 0;
+            }
+            this._centerBox.remove_style_class_name('ag-capsule-hovered');
             this._centerBox.remove_style_class_name('ag-unified-island-capsule');
             this._centerBox.remove_style_class_name('ag-theme-dark');
             this._centerBox.remove_style_class_name('ag-theme-light');
@@ -270,7 +317,25 @@ export const AntigravityIndicator = GObject.registerClass({
         }
 
         if (this._dateMenu) {
+            if (this._dateMenuHoverId) {
+                this._dateMenu.disconnect(this._dateMenuHoverId);
+                this._dateMenuHoverId = 0;
+            }
+            if (this._dateMenuStateId && this._dateMenu.menu) {
+                this._dateMenu.menu.disconnect(this._dateMenuStateId);
+                this._dateMenuStateId = 0;
+            }
             this._dateMenu.remove_style_class_name('ag-unified-island-date');
+        }
+
+        if (this._selfHoverId) {
+            this.disconnect(this._selfHoverId);
+            this._selfHoverId = 0;
+        }
+
+        if (this._menuStateId && this.menu) {
+            this.menu.disconnect(this._menuStateId);
+            this._menuStateId = 0;
         }
 
         if (this.menu && this.menu.box) {
