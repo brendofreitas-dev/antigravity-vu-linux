@@ -7,6 +7,15 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ---
 
+## [1.1.3] - 2026-11-12
+
+### Corrigido
+- **Hot-reload real**: o `import()` dinâmico agora usa `file://${path}/island.js?t=<timestamp>`; sem o esquema `file://` o GJS falhava e caía no import estático (cacheado na sessão).
+- **Nomes de grupos no backend** (`ag_vu_collector.py`): `Gemini Models` → `Gemini\u00a03.8`, `Claude and GPT models` → `Claude / GPT`, `Gemini 4 Argon` mantido. O NBSP evita que versões antigas da extensão em memória removam o prefixo `Gemini ` e exibam `Models`.
+- `island.js` normaliza `\u00a0` para espaço simples ao formatar nomes de grupos.
+
+---
+
 ## [1.1.2] - 2026-11-12
 
 ### Corrigido
