@@ -7,6 +7,24 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ---
 
+## [1.2.1] - 2026-11-12
+
+### Alterado
+- **Identificação clara de modelos e separação de quotas**:
+  - Grupo `gemini` formalizado como **Gemini 3.8 Flash & 4 Hydrogen** nos cartões e **Gemini 3.8** na Top Bar, refletindo o pool compartilhado de capacidade (janelas 5h e semanal).
+  - Grupo `3p` formalizado como **Claude & GPT (Opus / Sonnet / GPT)** nos cartões e **Claude / GPT** na Top Bar.
+  - Grupo `argon` formalizado como **Gemini 4 Argon**.
+- **Cálculo de gargalo ativo (bucket mais restritivo)**:
+  - Ao fixar um grupo com múltiplos limites (ex: 5h e semanal), o coletor backend (`ag_vu_collector.py`) e a extensão (`island.js`) selecionam ativamente o bucket de menor percentual restante (`remaining_pct`), alertando o gargalo operacional real (ex: se 5h bater 0%, exibe 0% mesmo com cota semanal disponível).
+- **Legendas de modelos nos cartões do dashboard**:
+  - Subtítulo compacto (`.ag-group-desc`) abaixo do cabeçalho de cada cartão exibindo os modelos que compartilham a cota (ex: `Gemini 3.8 Flash, Gemini 4 Hydrogen, Gemini 3.5 Lite` e `Claude Opus 5.5, Claude Sonnet 5.5, GPT-OSS 120B`).
+- **Metadados ricos no coletor backend (`ag_vu_collector.py`)**:
+  - Adicionados campos `description` e `models` por grupo de quotas; campo `group_name` adicionado em `primary_quota`, com `pill_name` mantendo Non-Breaking Space para retrocompatibilidade na Top Bar.
+- **Suíte de testes expandida**:
+  - Adicionado teste `test_pinned_group_most_restrictive_bucket`, totalizando 11/11 testes unitários aprovados.
+
+---
+
 ## [1.2.0] - 2026-11-12
 
 ### Alterado

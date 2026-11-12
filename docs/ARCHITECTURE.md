@@ -212,8 +212,15 @@ O coletor emite na saída padrão um JSON estruturado de acordo com o esquema:
   },
   "quota_groups": [
     {
-      "name": "Nome Amigável",
-      "id": "argon | gemini | 3p",
+      "name": "Gemini 3.8 & 4 Hydrogen",
+      "id": "gemini | argon | 3p",
+      "description": "Gemini 3.8 Flash, Gemini 4 Hydrogen, Gemini 3.5 Lite",
+      "models": [
+        "Gemini 3.8 Flash",
+        "Gemini 4 Hydrogen",
+        "Gemini 3.5 Flash Lite",
+        "Gemini 2.5 Pro"
+      ],
       "buckets": [
         {
           "id": "bucket-id",
