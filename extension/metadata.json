@@ -1,0 +1,15 @@
+{
+  "uuid": "antigravity-vu@brendo.freitas",
+  "name": "Antigravity View Usage",
+  "description": "Dynamic Island para o GNOME Shell com métricas em tempo real de Quotas de Modelos, Tokens Mensais, Contexto Ativo e Swarm de Agentes do Google Antigravity.",
+  "shell-version": [
+    "45",
+    "46",
+    "47",
+    "48",
+    "49",
+    "50"
+  ],
+  "url": "https://github.com/brendofreitas/antigravity-vU-linux",
+  "version": 1
+}
