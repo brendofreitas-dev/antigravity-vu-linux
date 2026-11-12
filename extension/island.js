@@ -54,6 +54,45 @@ function createHBox(styleClass = null, spacing = 0) {
     return box;
 }
 
+function formatShortGroupName(groupName, groupId) {
+    if (!groupName) return '⚡';
+    const gid = (groupId || '').toLowerCase();
+    const gname = groupName.toLowerCase();
+
+    if (gid === 'gemini' || gname.includes('gemini models') || (gname.includes('gemini') && !gname.includes('argon'))) {
+        return 'Gemini 3.8';
+    }
+    if (gid === 'argon' || gname.includes('argon')) {
+        return '4 Argon';
+    }
+    if (gid === '3p' || gname.includes('claude') || gname.includes('gpt')) {
+        return 'Claude/GPT';
+    }
+
+    return groupName
+        .replace(/gemini/i, '')
+        .replace(/models/i, '')
+        .replace(/and/i, '')
+        .replace(/gpt/i, '')
+        .trim() || '⚡';
+}
+
+function formatDisplayGroupName(group) {
+    const gid = (group.id || '').toLowerCase();
+    const gname = (group.name || '').toLowerCase();
+
+    if (gid === 'gemini' || gname.includes('gemini models')) {
+        return 'Gemini 3.8 (Flash / Pro)';
+    }
+    if (gid === 'argon' || gname.includes('argon')) {
+        return 'Gemini 4 Argon';
+    }
+    if (gid === '3p' || gname.includes('claude')) {
+        return 'Claude & GPT Models';
+    }
+    return group.name;
+}
+
 function loadPrefs() {
     try {
         const configDir = GLib.build_filenamev([GLib.get_user_config_dir(), 'antigravity-vu']);
@@ -152,6 +191,8 @@ export const AntigravityIndicator = GObject.registerClass({
 
         this.add_style_class_name('ag-panel-button');
         this.add_style_class_name('ag-unified-island-indicator');
+        this.y_align = Clutter.ActorAlign.CENTER;
+        this.y_expand = true;
 
         this._buildPill();
         this._buildMenuShell();
@@ -191,6 +232,8 @@ export const AntigravityIndicator = GObject.registerClass({
         this._pillBox.reactive = true;
         this._pillBox.track_hover = true;
         this._pillBox.can_focus = true;
+        this._pillBox.y_align = Clutter.ActorAlign.CENTER;
+        this._pillBox.y_expand = true;
 
         // Status glowing dot
         this._statusDot = new St.Widget({
@@ -204,6 +247,7 @@ export const AntigravityIndicator = GObject.registerClass({
             text: '⚡ --%',
             style_class: 'ag-pill-quota',
             y_align: Clutter.ActorAlign.CENTER,
+            y_expand: true,
         });
         this._pillBox.add_child(this._quotaLabel);
 
@@ -211,6 +255,8 @@ export const AntigravityIndicator = GObject.registerClass({
         this._hoverDetails = createHBox('ag-island-hover-details', 6);
         this._hoverDetails.visible = false;
         this._hoverDetails.opacity = 0;
+        this._hoverDetails.y_align = Clutter.ActorAlign.CENTER;
+        this._hoverDetails.y_expand = true;
 
         const sep1 = new St.Label({
             text: '•',
@@ -364,7 +410,7 @@ export const AntigravityIndicator = GObject.registerClass({
             this._centerBox.add_style_class_name(accentClass);
         }
 
-        // 2. Popup Menu Box (outer box of this.menu)
+        // 2. Popup Menu Box (outer container of this.menu)
         if (this.menu && this.menu.box) {
             this.menu.box.remove_style_class_name('ag-theme-dark');
             this.menu.box.remove_style_class_name('ag-theme-light');
@@ -408,7 +454,7 @@ export const AntigravityIndicator = GObject.registerClass({
             });
         } else {
             if (this._autoPeekActive) {
-                return; // Auto-peek is active, keep visible until timeout expires
+                return;
             }
             this._hoverDetails.ease({
                 opacity: 0,
@@ -538,17 +584,11 @@ export const AntigravityIndicator = GObject.registerClass({
         if (targetGroup && targetGroup.buckets && targetGroup.buckets.length > 0) {
             const b = targetGroup.buckets[0];
             remainingPct = b.remaining_pct;
-            const shortName = targetGroup.name
-                .replace('Gemini ', '')
-                .replace(' models', '')
-                .replace('and GPT', '');
+            const shortName = formatShortGroupName(targetGroup.name, targetGroup.id);
             quotaLabelText = `${shortName} ${Math.round(remainingPct)}%`;
         } else if (data.primary_quota) {
             remainingPct = data.primary_quota.remaining_pct;
-            const shortName = (data.primary_quota.group || '⚡')
-                .replace('Gemini ', '')
-                .replace(' models', '')
-                .replace('and GPT', '');
+            const shortName = formatShortGroupName(data.primary_quota.group, null);
             quotaLabelText = `${shortName} ${Math.round(remainingPct)}%`;
         }
 
@@ -577,7 +617,7 @@ export const AntigravityIndicator = GObject.registerClass({
 
         if (!data) {
             const loadingBox = createVBox('ag-context-card', 6);
-            loadingBox.style = 'padding: 20px;';
+            loadingBox.style = 'padding: 16px;';
 
             const emptyLabel = new St.Label({
                 text: 'Carregando métricas do Antigravity...',
@@ -655,8 +695,9 @@ export const AntigravityIndicator = GObject.registerClass({
 
                 const groupHeader = createHBox();
 
+                const displayName = formatDisplayGroupName(group);
                 const groupNameLabel = new St.Label({
-                    text: group.name,
+                    text: displayName,
                     style_class: 'ag-group-name',
                     x_expand: true,
                     y_align: Clutter.ActorAlign.CENTER,
@@ -717,7 +758,7 @@ export const AntigravityIndicator = GObject.registerClass({
                         const fill = new St.Widget({
                             style_class: fillClass,
                             width: fillWidth,
-                            height: 6,
+                            height: 5,
                             x_expand: false,
                             y_expand: false,
                         });
@@ -762,7 +803,7 @@ export const AntigravityIndicator = GObject.registerClass({
 
         // Chips for In / Cache / Out
         const chipsBox = createHBox(null, 6);
-        chipsBox.style = 'margin-top: 6px;';
+        chipsBox.style = 'margin-top: 4px;';
 
         const inTokens = (data.active_context?.input_tokens || 0).toLocaleString();
         const inChip = new St.Label({
@@ -798,8 +839,10 @@ export const AntigravityIndicator = GObject.registerClass({
         this._contentBox.add_child(swarmHeading);
 
         if (Array.isArray(data.swarm?.agents) && data.swarm.agents.length > 0) {
+            const agentsContainer = createVBox(null, 2);
+
             for (const agent of data.swarm.agents) {
-                const agentRow = createHBox('ag-agent-item', 8);
+                const agentRow = createHBox('ag-agent-item', 6);
 
                 const nameLabel = new St.Label({
                     text: agent.name,
@@ -824,7 +867,21 @@ export const AntigravityIndicator = GObject.registerClass({
                 });
                 agentRow.add_child(stepsLabel);
 
-                this._contentBox.add_child(agentRow);
+                agentsContainer.add_child(agentRow);
+            }
+
+            // Compact scroll if swarm has more than 4 agents
+            if (data.swarm.agents.length > 4) {
+                const agentsScroll = new St.ScrollView({
+                    style_class: 'ag-agents-scroll',
+                    overlay_scrollbars: true,
+                    style: 'max-height: 135px;',
+                    x_expand: true,
+                });
+                agentsScroll.set_child(agentsContainer);
+                this._contentBox.add_child(agentsScroll);
+            } else {
+                this._contentBox.add_child(agentsContainer);
             }
         } else {
             const noAgentsLabel = new St.Label({
@@ -868,7 +925,7 @@ export const AntigravityIndicator = GObject.registerClass({
 
         this._contentBox.add_child(tokenCardsBox);
 
-        // Top Projects
+        // Top Projects (show top 3)
         if (Array.isArray(data.projects) && data.projects.length > 0) {
             const projHeading = new St.Label({
                 text: 'Top Projetos:',
@@ -876,7 +933,8 @@ export const AntigravityIndicator = GObject.registerClass({
             });
             this._contentBox.add_child(projHeading);
 
-            for (const proj of data.projects) {
+            const topProjects = data.projects.slice(0, 3);
+            for (const proj of topProjects) {
                 const pBox = createVBox('ag-project-item');
 
                 const pTop = createHBox();
@@ -910,7 +968,7 @@ export const AntigravityIndicator = GObject.registerClass({
         const now = new Date();
         const timeStr = now.toLocaleTimeString();
         const footerLabel = new St.Label({
-            text: `Última atualização: ${timeStr} • Antigravity vU Linux v1.1.0`,
+            text: `Última atualização: ${timeStr} • Antigravity vU Linux v1.1.2`,
             style_class: 'ag-footer-text',
             x_align: Clutter.ActorAlign.CENTER,
         });
