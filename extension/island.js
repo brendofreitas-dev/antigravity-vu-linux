@@ -589,13 +589,18 @@ export const AntigravityIndicator = GObject.registerClass({
         }
 
         if (targetGroup && targetGroup.buckets && targetGroup.buckets.length > 0) {
-            const b = targetGroup.buckets[0];
+            const b = targetGroup.buckets.reduce((lowest, curr) => {
+                if (!lowest) return curr;
+                const lowestPct = Number(lowest.remaining_pct ?? 100);
+                const currPct = Number(curr.remaining_pct ?? 100);
+                return currPct < lowestPct ? curr : lowest;
+            }, targetGroup.buckets[0]);
             remainingPct = b.remaining_pct;
-            const shortName = formatShortGroupName(targetGroup.name, targetGroup.id);
+            const shortName = formatShortGroupName(targetGroup.pill_name || targetGroup.name, targetGroup.id);
             quotaLabelText = `${shortName} ${Math.round(remainingPct)}%`;
         } else if (data.primary_quota) {
             remainingPct = data.primary_quota.remaining_pct;
-            const shortName = formatShortGroupName(data.primary_quota.group, null);
+            const shortName = formatShortGroupName(data.primary_quota.pill_name || data.primary_quota.group, null);
             quotaLabelText = `${shortName} ${Math.round(remainingPct)}%`;
         }
 
@@ -731,6 +736,14 @@ export const AntigravityIndicator = GObject.registerClass({
 
                 groupHeader.add_child(pinBtn);
                 groupCard.add_child(groupHeader);
+
+                if (group.description) {
+                    const descLabel = new St.Label({
+                        text: group.description,
+                        style_class: 'ag-group-desc',
+                    });
+                    groupCard.add_child(descLabel);
+                }
 
                 if (Array.isArray(group.buckets)) {
                     for (const bucket of group.buckets) {

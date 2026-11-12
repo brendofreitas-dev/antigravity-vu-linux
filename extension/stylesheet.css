@@ -449,6 +449,20 @@
     color: #18181b;
 }
 
+.ag-group-desc {
+    font-size: 8pt;
+    font-weight: 500;
+    margin-top: 1px;
+    margin-bottom: 4px;
+    color: #94a3b8;
+    opacity: 0.85;
+}
+
+.ag-theme-light .ag-group-desc {
+    color: #64748b;
+    opacity: 0.90;
+}
+
 .ag-pin-btn {
     font-size: 8pt;
     padding: 2px 6px;
