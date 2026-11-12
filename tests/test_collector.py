@@ -135,7 +135,7 @@ class TestQuotaTransformation(unittest.TestCase):
 
     def test_pinned_gemini_selection(self):
         primary, groups = self.collector.transform_quota_groups(self.mock_quota_raw, pinned_group_pref="gemini")
-        self.assertEqual(primary["group"], "Gemini Models")
+        self.assertEqual(primary["group"], "Gemini\u00a03.8")
         self.assertAlmostEqual(primary["remaining_pct"], 65.0, places=1)
 
     def test_empty_quota_fallback(self):

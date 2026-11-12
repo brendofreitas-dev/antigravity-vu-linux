@@ -257,12 +257,23 @@ class AntigravityCollector:
             "gemini 4 argon": "argon",
         }
 
+        # Friendly display names:
+        # "Gemini\u00a03.8" uses Non-Breaking Space (\u00a0) so any old JS in memory doing
+        # .replace('Gemini ', '') will NOT strip "Gemini", ensuring both old and new JS
+        # immediately display "Gemini 3.8 <pct>%" on the Top Bar without needing a logout!
+        group_display_map = {
+            "gemini": "Gemini\u00a03.8",
+            "3p": "Claude / GPT",
+            "argon": "Gemini 4 Argon",
+        }
+
         lowest_bucket = None
         pinned_candidate = None
 
         for grp in quota_raw.get("groups", []):
-            g_name = grp.get("displayName", "Unknown")
-            g_id = group_id_map.get(g_name.lower().strip(), re.sub(r"[^a-z0-9]+", "-", g_name.lower()))
+            raw_name = grp.get("displayName", "Unknown")
+            g_id = group_id_map.get(raw_name.lower().strip(), re.sub(r"[^a-z0-9]+", "-", raw_name.lower()))
+            g_name = group_display_map.get(g_id, raw_name)
             buckets_out = []
 
             for b in grp.get("buckets", []):
