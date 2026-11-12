@@ -22,7 +22,8 @@
 
 ## ✨ Destaques & Funcionalidades
 
-- 🏝️ **Dynamic Island Centralizada**: Integrada cirurgicamente ao lado do `DateMenu` nativo do GNOME Shell. Preserva data, hora e calendário intocados enquanto o Mutter auto-centraliza o conjunto com fluidez.
+- 🏝️ **Dynamic Island Unificada (Data/Hora + Antigravity)**: uma única cápsula no centro da Top Bar engloba o `DateMenu` nativo e as métricas do Antigravity. Clicar na data/hora abre o calendário/notificações do GNOME; clicar no lado Antigravity abre o Dashboard de View Usage.
+- 🎨 **Tema Adaptativo do Ubuntu (Light/Dark)**: segue automaticamente `org.gnome.desktop.interface` (`color-scheme`, `gtk-theme`, `accent-color`), com suporte às cores de destaque Yaru/Adwaita.
 - ⚡ **Monitor de Cotas em Tempo Real**: Telemetria direta via ConnectRPC do daemon local do Antigravity (`RetrieveUserQuotaSummary`), cobrindo Gemini 4 Argon, Gemini Pro/Flash e modelos Claude/GPT com percentuais e contagem regressiva de reset (`reset_in`).
 - 🧠 **Rastreador de Swarm & Agentes Ativos**: Visualização em tempo real de sessões e subagentes trabalhando em paralelo (`coordinator`, `explorer`, `gnome-dev`, `verifier`, etc.), status operacional (`WORKING` / `IDLE`) e contagem de steps executados.
 - 🎯 **Janela de Contexto & Prompt Cache**: Detecção do projeto ativo, medição exata de tokens de entrada (`input_tokens`), economia via prompt cache (`cache_read_tokens`) e tokens gerados (`output_tokens`).
@@ -39,9 +40,9 @@
 
 | Estágio | Comportamento | Visual |
 | :--- | :--- | :--- |
-| **1. Pílula Fechada** | Discreta (28px de altura), dot com cor de status (verde/âmbar/vermelho) e porcentagem da quota principal. | `[ ● Argon 31.4% ]` |
+| **1. Pílula Fechada** | Cápsula única (28px) com data/hora nativas, dot de status (verde/âmbar/vermelho) e porcentagem da quota principal. | `[ 12 de nov 12:15 │ ● 4 Argon 26% ]` |
 | **2. Expansão Dinâmica** | Ao passar o cursor ou quando agentes iniciam trabalho, expande suavemente exibindo contexto e agentes ativos. | `[ ● Argon 31.4% │ Ctx: 48.2k • ⚡ 3 ag ]` |
-| **3. Dashboard Completo** | Ao clicar, abre o menu suspenso em estilo Dark Glassmorphism com barras de progresso, breakdown de tokens e lista de agentes. | *(Popup expansivo de alta densidade informativa)* |
+| **3. Dashboard Completo** | Ao clicar, abre o menu suspenso em estilo Glassmorphism (Light/Dark conforme o sistema) com barras de progresso, breakdown de tokens e lista de agentes. | *(Popup expansivo de alta densidade informativa)* |
 
 ---
 

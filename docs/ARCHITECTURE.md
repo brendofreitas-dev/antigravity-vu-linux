@@ -10,7 +10,8 @@ O **Antigravity View Usage** foi projetado para fornecer aos desenvolvedores uma
 
 ### Princípios Norteadores
 1. **Zero Overhead de CPU e RAM**: Nenhum loop contínuo de renderização no compositor do desktop. Animações aceleradas por hardware via Clutter/Mutter e execução assíncrona desacoplada do processo do GNOME Shell.
-2. **Preservação do Desktop Nativo**: Integração cirúrgica na barra superior (*Top Bar*), posicionado no contêiner central (`_centerBox`) preservando integralmente o menu de data e hora nativo (`dateMenu`) do GNOME.
+2. **Unified Dynamic Island**: o contêiner central (`_centerBox`) é estilizado como uma única cápsula (`.ag-unified-island-capsule`) que engloba o `dateMenu` nativo e o indicador Antigravity, preservando o calendário do GNOME e restaurando tudo no `disable()`.
+2b. **Adaptive Ubuntu System Theme**: tema Light/Dark e cor de acento seguem o sistema.
 3. **Resiliência e Funcionamento Offline**: Mecanismo de cache persistente inteligente (`last_quota.json` e `transcript_index.json`) que garante visualização das últimas métricas mesmo quando o Language Server ou a IDE estão fechados.
 4. **Arquitetura Desacoplada**: Um coletor/CLI Python 3 puro sem bibliotecas externas atua como motor analítico, enquanto a extensão GNOME Shell atua como interface visual reativa.
 
@@ -130,6 +131,16 @@ Main.panel.addToStatusArea(this.uuid, this._indicator, 1, 'center');
 **Vantagens dessa abordagem**:
 1. **Intocabilidade do DateMenu**: O relógio nativo do sistema, notificações de calendário e tempo permanecem 100% inalterados e protegidos contra quebras em atualizações do sistema operacional.
 2. **Auto-Centralização Fluida**: O layout manager do Mutter recalcula o posicionamento de `_centerBox` dinamicamente conforme sua largura total varia, mantendo o conjunto Relógio + Dynamic Island perfeitamente centralizado na tela.
+
+### 4.2.1. Unified Dynamic Island (v1.1.0)
+- `Main.panel._centerBox` recebe `.ag-unified-island-capsule`; lado esquerdo (`.ag-unified-island-date`) = `dateMenu` nativo (calendário/notificações); lado direito (`.ag-unified-island-indicator`) = Dashboard Antigravity.
+- Hover em qualquer parte da ilha expande com `actor.ease()`.
+- `_removeUnifiedIsland()` desconecta listeners e restaura classes originais no `disable()`.
+- O dropdown usa `PopupMenu.PopupMenuSection` (sem `St.ScrollView`) e helpers `createVBox`/`createHBox` com `orientation`, evitando colapso de altura no GNOME 50.
+
+### 4.2.2. Adaptive Ubuntu System Theme (v1.1.0)
+- `Gio.Settings('org.gnome.desktop.interface')` monitora `color-scheme`, `gtk-theme` e `accent-color`.
+- Classes `.ag-theme-dark` / `.ag-theme-light` na ilha e no menu; 9 cores de acento (blue, orange, purple, green, red, yellow, teal, pink, slate).
 
 ### 4.3. Os Três Estágios da Dynamic Island
 

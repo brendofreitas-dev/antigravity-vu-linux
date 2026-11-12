@@ -8,8 +8,8 @@ Este documento traça o planejamento estratégico e a evolução do projeto **An
 
 ```mermaid
 flowchart LR
-    v10["v1.0.0 (Atual)<br/>• Dynamic Island GNOME<br/>• Quotas ConnectRPC<br/>• Swarm Tracker<br/>• CLI ag-vu"]
-    v11["v1.1.0 (Q1 2027)<br/>• Painel Prefs GTK4/Adw<br/>• Alertas de Cota Crítica<br/>• Gráficos Sparkline Cairo"]
+    v10["v1.0.0<br/>• Dynamic Island GNOME<br/>• Quotas ConnectRPC<br/>• Swarm Tracker<br/>• CLI ag-vu"]
+    v11["v1.1.0 (Atual)<br/>• Unified Dynamic Island<br/>• Tema Ubuntu Light/Dark<br/>• Painel Prefs GTK4/Adw<br/>• Alertas de Cota Crítica<br/>• Gráficos Sparkline Cairo"]
     v12["v1.2.0 (Q2 2027)<br/>• Overlay Wayland Puro<br/>• Suporte a Hyprland/KDE<br/>• Exportador Prometheus"]
     v20["v2.0.0 (Q3 2027)<br/>• Multi-Account Switcher<br/>• Estimador de Custos<br/>• Histórico Anual SQLite"]
 
@@ -34,7 +34,12 @@ flowchart LR
 
 ---
 
-### [v1.1.0] — Experiência do Usuário & Alertas Nativos 🎯
+### [v1.1.0] — Unified Island & Tema Adaptativo ✅ (2026-11-12)
+- [x] **Unified Dynamic Island (Date/Time + Antigravity)**: cápsula única sobre `_centerBox`, calendário nativo preservado, reversível no `disable()`.
+- [x] **Adaptive Ubuntu System Theme (Light/Dark)** com cores de acento Yaru/Adwaita.
+- [x] Fix do `PopupMenu` (colapso de altura no GNOME 50).
+
+### [v1.2.0-pre] — Experiência do Usuário & Alertas Nativos 🎯 (adiado da 1.1)
 - [ ] **Interface Gráfica de Configuração (`prefs.js`)**:
   - Diálogo nativo em GTK4 / Libadwaita integrado ao aplicativo *Extensões* do GNOME.
   - Seleção visual do grupo de cota fixado na pílula.
