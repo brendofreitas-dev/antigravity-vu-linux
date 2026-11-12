@@ -54,15 +54,37 @@ function createHBox(styleClass = null, spacing = 0) {
     return box;
 }
 
-function formatShortGroupName(groupName, groupId) {
+function formatShortGroupName(groupName, groupId, activeModel = null) {
     if (!groupName && !groupId) return '⚡';
-    const gid = (groupId || '').toLowerCase();
-    const gname = (groupName || '').replace(/\u00a0/g, ' ').toLowerCase();
+    const raw = (groupName || '').replace(/\u00a0/g, ' ').trim();
+    if (raw === '4 Hydrogen' || raw === 'Gemini 3.8' || raw === '4 Argon' || raw === 'Claude/GPT') {
+        return raw;
+    }
 
-    if (gid === 'hydrogen' || gname.includes('hydrogen')) {
+    const gid = (groupId || '').toLowerCase();
+    const gname = raw.toLowerCase();
+    const am = (activeModel || '').toLowerCase();
+
+    if (am.includes('hydrogen')) {
+        return '4 Hydrogen';
+    }
+    if (am.includes('flash') || am.includes('gemini-3.8') || am.includes('3.8')) {
+        return 'Gemini 3.8';
+    }
+    if (am.includes('argon')) {
+        return '4 Argon';
+    }
+    if (am.includes('claude') || am.includes('gpt') || am.includes('opus') || am.includes('sonnet')) {
+        return 'Claude/GPT';
+    }
+
+    if (gid === 'hydrogen' || (gname.includes('hydrogen') && !gname.includes('3.8') && !gname.includes('flash'))) {
         return '4 Hydrogen';
     }
     if (gid === 'gemini' || gname.includes('gemini 3.8') || gname.includes('gemini models') || (gname.includes('gemini') && !gname.includes('argon'))) {
+        if (gname.includes('hydrogen') && !gname.includes('flash') && !gname.includes('3.8')) {
+            return '4 Hydrogen';
+        }
         return 'Gemini 3.8';
     }
     if (gid === 'argon' || gname.includes('argon')) {
@@ -72,8 +94,7 @@ function formatShortGroupName(groupName, groupId) {
         return 'Claude/GPT';
     }
 
-    return (groupName || '')
-        .replace(/\u00a0/g, ' ')
+    return raw
         .replace(/gemini/i, '')
         .replace(/models/i, '')
         .replace(/and/i, '')
@@ -588,6 +609,8 @@ export const AntigravityIndicator = GObject.registerClass({
             targetGroup = data.quota_groups.find(g => g.id === pinned || g.name.toLowerCase().includes(pinned.toLowerCase()));
         }
 
+        const activeModel = data.active_context?.active_model || '';
+
         if (targetGroup && targetGroup.buckets && targetGroup.buckets.length > 0) {
             const b = targetGroup.buckets.reduce((lowest, curr) => {
                 if (!lowest) return curr;
@@ -596,11 +619,15 @@ export const AntigravityIndicator = GObject.registerClass({
                 return currPct < lowestPct ? curr : lowest;
             }, targetGroup.buckets[0]);
             remainingPct = b.remaining_pct;
-            const shortName = formatShortGroupName(targetGroup.pill_name || targetGroup.name, targetGroup.id);
+            const shortName = formatShortGroupName(targetGroup.pill_name || targetGroup.name, targetGroup.id, activeModel);
             quotaLabelText = `${shortName} ${Math.round(remainingPct)}%`;
         } else if (data.primary_quota) {
             remainingPct = data.primary_quota.remaining_pct;
-            const shortName = formatShortGroupName(data.primary_quota.pill_name || data.primary_quota.group, null);
+            const shortName = formatShortGroupName(
+                data.primary_quota.pill_name || data.primary_quota.group,
+                data.primary_quota.id || data.primary_quota.group_id,
+                activeModel
+            );
             quotaLabelText = `${shortName} ${Math.round(remainingPct)}%`;
         }
 
@@ -650,33 +677,35 @@ export const AntigravityIndicator = GObject.registerClass({
         }
 
         // ================= 1. HEADER =================
-        const headerBox = createHBox('ag-header-box', 8);
-
-        const titleBox = createHBox(null, 8);
-        titleBox.x_expand = true;
+        const headerBox = createHBox('ag-header-box');
+        headerBox.x_expand = true;
 
         const titleLabel = new St.Label({
             text: 'Antigravity View Usage',
             style_class: 'ag-header-title',
+            x_expand: true,
             y_align: Clutter.ActorAlign.CENTER,
         });
-        titleBox.add_child(titleLabel);
+        headerBox.add_child(titleLabel);
+
+        const metaBox = createHBox('ag-header-meta', 10);
+        metaBox.x_expand = false;
+        metaBox.x_align = Clutter.ActorAlign.END;
+        metaBox.y_align = Clutter.ActorAlign.CENTER;
 
         const tierBadge = new St.Label({
             text: data.user?.tier || 'Pro',
             style_class: 'ag-tier-badge',
             y_align: Clutter.ActorAlign.CENTER,
         });
-        titleBox.add_child(tierBadge);
+        metaBox.add_child(tierBadge);
 
         const onlineBadge = new St.Label({
             text: data.user?.ls_online ? '● Online' : '● Offline',
             style_class: data.user?.ls_online ? 'ag-online-badge' : 'ag-offline-badge',
             y_align: Clutter.ActorAlign.CENTER,
         });
-        titleBox.add_child(onlineBadge);
-
-        headerBox.add_child(titleBox);
+        metaBox.add_child(onlineBadge);
 
         const refreshBtn = new St.Button({
             label: '↻',
@@ -688,8 +717,9 @@ export const AntigravityIndicator = GObject.registerClass({
             refreshBtn.label = '⏳';
             this._fetchData(true);
         });
-        headerBox.add_child(refreshBtn);
+        metaBox.add_child(refreshBtn);
 
+        headerBox.add_child(metaBox);
         this._contentBox.add_child(headerBox);
 
         // ================= 2. QUOTAS SECTION =================
@@ -813,6 +843,14 @@ export const AntigravityIndicator = GObject.registerClass({
             style_class: 'ag-session-title',
         });
         contextCard.add_child(convLabel);
+
+        if (data.active_context?.active_model_label) {
+            const modelLabel = new St.Label({
+                text: `🤖 ${data.active_context.active_model_label}`,
+                style_class: 'ag-model-badge',
+            });
+            contextCard.add_child(modelLabel);
+        }
 
         const totalTokensFormatted = data.active_context?.context_formatted || '0';
         const totalCtxLabel = new St.Label({
@@ -987,8 +1025,9 @@ export const AntigravityIndicator = GObject.registerClass({
         // ================= 5. FOOTER =================
         const now = new Date();
         const timeStr = now.toLocaleTimeString();
+        const verName = this._extension?.metadata?.['version-name'] || '1.2.3';
         const footerLabel = new St.Label({
-            text: `Última atualização: ${timeStr} • Antigravity vU Linux v1.1.2`,
+            text: `Última atualização: ${timeStr} • Antigravity vU Linux v${verName}`,
             style_class: 'ag-footer-text',
             x_align: Clutter.ActorAlign.CENTER,
         });

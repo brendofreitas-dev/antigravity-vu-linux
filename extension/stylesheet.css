@@ -311,47 +311,32 @@
 }
 
 /* ==========================================================================
-   4. POPUP MENU DASHBOARD (Exact Ubuntu Yaru Palette)
+   4. POPUP MENU DASHBOARD (Exact Ubuntu Yaru Palette & Calendar Integration)
    ========================================================================== */
 
-/* Outer Shell / Boxpointer Sync */
-.ag-theme-dark.popup-menu-content {
-    background-color: #36363a !important;
-    border: 1px solid #424247 !important;
-}
-
-.ag-theme-light.popup-menu-content {
-    background-color: #ffffff !important;
-    border: 1px solid #ededed !important;
-}
-
-/* Main Content Box */
+/* Main Content Box - Transparent to inherit native GNOME Shell Calendar style & blur */
 .ag-popup-menu {
-    border-radius: 16px;
+    border-radius: 0;
     padding: 10px 14px;
     width: 420px;
     min-width: 400px;
-    /* Default / Dark Yaru palette */
-    background-color: #36363a;
-    border: 1px solid #424247;
-    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.55);
+    background-color: transparent !important;
+    background: none !important;
+    border: none !important;
+    box-shadow: none !important;
 }
 
-.ag-theme-dark.ag-popup-menu {
-    background-color: #36363a;
-    border: 1px solid #424247;
-    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.55);
-}
-
+.ag-theme-dark.ag-popup-menu,
 .ag-theme-light.ag-popup-menu {
-    background-color: #ffffff;
-    border: 1px solid #ededed;
-    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.12);
+    background-color: transparent !important;
+    background: none !important;
+    border: none !important;
+    box-shadow: none !important;
 }
 
 /* Header */
 .ag-header-box {
-    margin-bottom: 6px;
+    margin-bottom: 8px;
     padding-bottom: 6px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
@@ -361,13 +346,24 @@
 }
 
 .ag-header-title {
-    font-size: 12pt;
+    font-size: 11.5pt;
     font-weight: 800;
     color: #f8fafc;
 }
 
 .ag-theme-light .ag-header-title {
     color: #18181b;
+}
+
+.ag-header-meta {
+    spacing: 10px;
+}
+
+.ag-header-meta .ag-tier-badge,
+.ag-header-meta .ag-online-badge,
+.ag-header-meta .ag-offline-badge,
+.ag-header-meta .ag-btn-refresh {
+    margin-left: 4px;
 }
 
 .ag-tier-badge {
@@ -444,17 +440,17 @@
     border-radius: 8px;
     padding: 6px 8px;
     margin-bottom: 4px;
-    background-color: rgba(255, 255, 255, 0.05);
+    background-color: rgba(255, 255, 255, 0.06);
     border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .ag-theme-dark .ag-group-card {
-    background-color: rgba(255, 255, 255, 0.05);
+    background-color: rgba(255, 255, 255, 0.06);
     border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .ag-theme-light .ag-group-card {
-    background-color: #f4f4f6;
+    background-color: rgba(0, 0, 0, 0.045);
     border: 1px solid rgba(0, 0, 0, 0.06);
 }
 
@@ -564,17 +560,17 @@
     border-radius: 8px;
     padding: 6px 8px;
     margin-bottom: 4px;
-    background-color: rgba(255, 255, 255, 0.05);
+    background-color: rgba(255, 255, 255, 0.06);
     border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .ag-theme-dark .ag-context-card {
-    background-color: rgba(255, 255, 255, 0.05);
+    background-color: rgba(255, 255, 255, 0.06);
     border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .ag-theme-light .ag-context-card {
-    background-color: #f4f4f6;
+    background-color: rgba(0, 0, 0, 0.045);
     border: 1px solid rgba(0, 0, 0, 0.06);
 }
 
@@ -595,6 +591,17 @@
 
 .ag-theme-light .ag-session-title {
     color: #64748b;
+}
+
+.ag-model-badge {
+    font-size: 8.5pt;
+    font-weight: 700;
+    color: #38bdf8;
+    margin-top: 2px;
+}
+
+.ag-theme-light .ag-model-badge {
+    color: #0284c7;
 }
 
 .ag-context-total {
@@ -632,12 +639,12 @@
     border-radius: 5px;
     padding: 3px 8px;
     margin-bottom: 2px;
-    background-color: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    background-color: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .ag-theme-light .ag-agent-item {
-    background-color: rgba(0, 0, 0, 0.02);
+    background-color: rgba(0, 0, 0, 0.03);
     border: 1px solid rgba(0, 0, 0, 0.04);
 }
 
@@ -687,13 +694,13 @@
 .ag-token-card {
     border-radius: 6px;
     padding: 5px 6px;
-    background-color: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.06);
+    background-color: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.07);
 }
 
 .ag-theme-light .ag-token-card {
-    background-color: #f4f4f6;
-    border: 1px solid rgba(0, 0, 0, 0.06);
+    background-color: rgba(0, 0, 0, 0.04);
+    border: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 .ag-token-title {
@@ -722,11 +729,11 @@
     border-radius: 5px;
     padding: 3px 8px;
     margin-bottom: 2px;
-    background-color: rgba(255, 255, 255, 0.03);
+    background-color: rgba(255, 255, 255, 0.04);
 }
 
 .ag-theme-light .ag-project-item {
-    background-color: rgba(0, 0, 0, 0.02);
+    background-color: rgba(0, 0, 0, 0.03);
 }
 
 .ag-project-name {
