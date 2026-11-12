@@ -142,6 +142,9 @@ Main.panel.addToStatusArea(this.uuid, this._indicator, 1, 'center');
 - `Gio.Settings('org.gnome.desktop.interface')` monitora `color-scheme`, `gtk-theme` e `accent-color`.
 - Classes `.ag-theme-dark` / `.ag-theme-light` na ilha e no menu; 9 cores de acento (blue, orange, purple, green, red, yellow, teal, pink, slate).
 
+- **Hot-reload (v1.1.1)**: `extension.js` é um carregador; a lógica fica em `island.js`, importado com `?t=<Date.now()>` para quebrar o cache de módulos do GJS.
+- **Regra de tema**: `prefer-light` → Light; `prefer-dark` → Dark; `gtk-theme` (`-dark`) só quando `color-scheme` = `default`. Também escuta `St.ThemeContext` `changed`. Paleta Yaru neutra (Dark `#36363a`/cards `#2a2a2e`; Light `#ffffff`/cards `#f4f4f6`).
+
 ### 4.3. Os Três Estágios da Dynamic Island
 
 ```

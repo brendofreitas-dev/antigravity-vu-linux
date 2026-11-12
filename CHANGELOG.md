@@ -7,6 +7,15 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ---
 
+## [1.1.1] - 2026-11-12
+
+### Alterado
+- **Hot-reload**: `extension.js` virou um carregador que faz `import('island.js?t=<timestamp>')` com cache-busting; `gnome-extensions disable && enable` aplica mudanças de lógica/UI sem reiniciar a sessão (fallback para import estático).
+- **Paleta fiel ao Ubuntu Yaru**: Dark (menu `#36363a`, cards `#2a2a2e`, cápsula `rgba(45,45,50,0.90)`) e Light (menu `#ffffff`, cards `#f4f4f6`), eliminando o tom azulado.
+- **Detecção de tema**: `prefer-light` = sempre Light, `prefer-dark` = sempre Dark; `gtk-theme` só é consultado com `color-scheme` `default`. Também escuta `St.ThemeContext` `changed`.
+
+---
+
 ## [1.1.0] - 2026-11-12
 
 ### Adicionado
