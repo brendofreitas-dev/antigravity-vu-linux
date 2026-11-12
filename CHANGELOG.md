@@ -7,6 +7,19 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ---
 
+## [1.3.1] - 2026-11-12
+
+### Corrigido
+- **Rastreamento de hover e realce da cápsula unificada**:
+  - Reativados `reactive = true` e `track_hover = true` em `_centerBox`, `_dateMenu` e no indicador do Antigravity.
+  - Implementado sincronizador reativo `_syncCapsuleHover()` conectado via `notify::hover` e `open-state-changed` em ambos os menus, aplicando dinamicamente a classe `.ag-capsule-hovered`.
+  - O realce em retângulo com cantos arredondados (8px) do Ubuntu System Tray (`box-shadow: inset 0 0 0 100px rgba(255, 255, 255, 0.17)`) agora acende com total confiabilidade ao passar o cursor sobre a Data/Hora, sobre as métricas ou enquanto os menus estiverem abertos.
+  - Desconexão limpa e restauração completa de todos os manipuladores de sinais em `_removeUnifiedIsland()` e `destroy()`.
+- **Metadados**:
+  - `extension/metadata.json` atualizado para `version: 8` e `version-name: "1.3.1"`.
+
+---
+
 ## [1.3.0] - 2026-11-12
 
 ### Removido
