@@ -59,6 +59,9 @@ function formatShortGroupName(groupName, groupId) {
     const gid = (groupId || '').toLowerCase();
     const gname = (groupName || '').replace(/\u00a0/g, ' ').toLowerCase();
 
+    if (gid === 'hydrogen' || gname.includes('hydrogen')) {
+        return '4 Hydrogen';
+    }
     if (gid === 'gemini' || gname.includes('gemini 3.8') || gname.includes('gemini models') || (gname.includes('gemini') && !gname.includes('argon'))) {
         return 'Gemini 3.8';
     }
@@ -82,14 +85,17 @@ function formatDisplayGroupName(group) {
     const gid = (group.id || '').toLowerCase();
     const gname = (group.name || '').replace(/\u00a0/g, ' ').toLowerCase();
 
-    if (gid === 'gemini' || gname.includes('gemini models') || gname.includes('gemini 3.8')) {
-        return 'Gemini 3.8 (Flash / Pro)';
+    if (gid === 'hydrogen' || (gname.includes('hydrogen') && !gname.includes('gemini 3.8') && !gname.includes('flash'))) {
+        return 'Gemini 4 Hydrogen';
+    }
+    if (gid === 'gemini' || gname.includes('gemini models') || gname.includes('gemini 3.8') || gname.includes('hydrogen')) {
+        return 'Gemini 3.8 Flash & 4 Hydrogen';
     }
     if (gid === 'argon' || gname.includes('argon')) {
         return 'Gemini 4 Argon';
     }
     if (gid === '3p' || gname.includes('claude') || gname.includes('gpt')) {
-        return 'Claude & GPT Models';
+        return 'Claude & GPT (Opus / Sonnet / GPT)';
     }
     return group.name;
 }
