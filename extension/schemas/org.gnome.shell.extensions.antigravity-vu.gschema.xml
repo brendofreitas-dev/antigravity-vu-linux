@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist gettext-domain="antigravity-vu">
+  <schema id="org.gnome.shell.extensions.antigravity-vu" path="/org/gnome/shell/extensions/antigravity-vu/">
+    <key name="toggle-dashboard" type="as">
+      <default>['&lt;Super&gt;&lt;Alt&gt;a']</default>
+      <summary>Alternar visibilidade do Dashboard do Antigravity View Usage</summary>
+      <description>Atalho global para abrir ou fechar o popover do Antigravity View Usage na barra superior.</description>
+    </key>
+  </schema>
+</schemalist>

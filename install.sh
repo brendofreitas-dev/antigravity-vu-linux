@@ -39,7 +39,12 @@ mkdir -p "$CONFIG_DIR"
 
 # 3. Copiar arquivos da extensão GNOME
 echo -e "${BLUE}[2/5]${NC} Copiando arquivos da extensão para $EXT_DST..."
-cp -v "$EXT_SRC/"* "$EXT_DST/"
+cp -rv "$EXT_SRC/"* "$EXT_DST/"
+
+if [ -d "$EXT_DST/schemas" ] && command -v glib-compile-schemas >/dev/null 2>&1; then
+    echo -e "${BLUE}    Compilando schemas GSettings em $EXT_DST/schemas...${NC}"
+    glib-compile-schemas "$EXT_DST/schemas"
+fi
 
 # 4. Configurar CLI backend ag-vu
 echo -e "${BLUE}[3/5]${NC} Configurando CLI backend em $BIN_TARGET..."

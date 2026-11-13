@@ -10,6 +10,8 @@ import Clutter from 'gi://Clutter';
 import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 import GObject from 'gi://GObject';
+import Meta from 'gi://Meta';
+import Shell from 'gi://Shell';
 import St from 'gi://St';
 
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
@@ -17,6 +19,41 @@ import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 
 const POLL_INTERVAL_SECONDS = 5;
+const NOTIFY_STATE_FILE = GLib.build_filenamev([GLib.get_home_dir(), '.cache', 'antigravity-vu', 'notify_state.json']);
+
+function loadNotifyState() {
+    try {
+        const file = Gio.File.new_for_path(NOTIFY_STATE_FILE);
+        if (file.query_exists(null)) {
+            const [, contents] = file.load_contents(null);
+            const decoded = new TextDecoder('utf-8').decode(contents);
+            return JSON.parse(decoded);
+        }
+    } catch (e) {
+        // fallback
+    }
+    return {};
+}
+
+function saveNotifyState(state) {
+    try {
+        const dirPath = GLib.build_filenamev([GLib.get_home_dir(), '.cache', 'antigravity-vu']);
+        GLib.mkdir_with_parents(dirPath, 0o755);
+        const file = Gio.File.new_for_path(NOTIFY_STATE_FILE);
+        const text = JSON.stringify(state, null, 2);
+        file.replace_contents(text, null, false, Gio.FileCreateFlags.REPLACE_DESTINATION, null);
+    } catch (e) {
+        console.warn(`[Antigravity-vU] saveNotifyState error: ${e.message}`);
+    }
+}
+
+function formatTokensShort(n) {
+    if (!n || n <= 0) return '0';
+    if (n >= 1e9) return `${(n / 1e9).toFixed(1)}B`;
+    if (n >= 1e6) return `${(n / 1e6).toFixed(1)}M`;
+    if (n >= 1e3) return `${(n / 1e3).toFixed(1)}k`;
+    return `${n}`;
+}
 
 function createVBox(styleClass = null, spacing = 0) {
     const box = new St.BoxLayout({
@@ -200,6 +237,14 @@ export const AntigravityIndicator = GObject.registerClass({
         // Integrate with Main.panel._centerBox to form the Unified Dynamic Island Capsule
         this._integrateUnifiedIsland();
 
+        // Notification state and anti-spam cache
+        this._notifyState = loadNotifyState();
+        this._notifyInitialized = false;
+
+        // Global Keybinding (<Super><Alt>a) to toggle dashboard
+        this._keybindingRegistered = false;
+        this._initKeybinding();
+
         // Initial fetch
         this._fetchData();
 
@@ -341,6 +386,11 @@ export const AntigravityIndicator = GObject.registerClass({
         if (this.menu && this.menu.box) {
             this.menu.box.remove_style_class_name('ag-theme-dark');
             this.menu.box.remove_style_class_name('ag-theme-light');
+            this.menu.box.remove_style_class_name('ag-blur-compat');
+        }
+
+        if (this._contentBox) {
+            this._contentBox.remove_style_class_name('ag-blur-compat');
         }
     }
 
@@ -423,12 +473,187 @@ export const AntigravityIndicator = GObject.registerClass({
             this._contentBox.add_style_class_name(themeClass);
             this._contentBox.add_style_class_name(accentClass);
         }
+
+        // 4. Blur My Shell compatibility (blur-my-shell@aunetx)
+        const bms = Main.extensionManager?.lookup?.('blur-my-shell@aunetx');
+        const isBmsActive = !!(bms && (bms.state === 1 || bms.state === 2 || bms.enabled));
+        if (isBmsActive) {
+            if (this._contentBox) this._contentBox.add_style_class_name('ag-blur-compat');
+            if (this.menu && this.menu.box) this.menu.box.add_style_class_name('ag-blur-compat');
+        } else {
+            if (this._contentBox) this._contentBox.remove_style_class_name('ag-blur-compat');
+            if (this.menu && this.menu.box) this.menu.box.remove_style_class_name('ag-blur-compat');
+        }
     }
 
     _removeAllAccentClasses(actor) {
         const accents = ['blue', 'teal', 'green', 'yellow', 'orange', 'red', 'pink', 'purple', 'slate'];
         for (const a of accents) {
             actor.remove_style_class_name(`ag-accent-${a}`);
+        }
+    }
+
+    /* =========================================================================
+       Global Shortcut & Notifications
+       ========================================================================= */
+
+    _initKeybinding() {
+        let settings = null;
+        try {
+            settings = this._extension?.getSettings?.();
+        } catch (e) {
+            console.warn(`[Antigravity-vU] getSettings error: ${e.message}`);
+        }
+
+        if (!settings) {
+            try {
+                const schemaSource = Gio.SettingsSchemaSource.new_from_directory(
+                    GLib.build_filenamev([this._extension.path, 'schemas']),
+                    Gio.SettingsSchemaSource.get_default(),
+                    false
+                );
+                const schemaObj = schemaSource?.lookup('org.gnome.shell.extensions.antigravity-vu', false);
+                if (schemaObj) {
+                    settings = new Gio.Settings({ settings_schema: schemaObj });
+                }
+            } catch (e) {
+                console.warn(`[Antigravity-vU] SchemaSource fallback error: ${e.message}`);
+            }
+        }
+
+        if (settings && Main.wm?.addKeybinding) {
+            try {
+                Main.wm.addKeybinding(
+                    'toggle-dashboard',
+                    settings,
+                    Meta.KeyBindingFlags.NONE,
+                    Shell.ActionMode.NORMAL | Shell.ActionMode.OVERVIEW,
+                    () => {
+                        if (this.menu) {
+                            this.menu.toggle();
+                        }
+                    }
+                );
+                this._keybindingRegistered = true;
+            } catch (e) {
+                console.warn(`[Antigravity-vU] Error registering toggle-dashboard keybinding: ${e.message}`);
+            }
+        }
+    }
+
+    _removeKeybinding() {
+        if (this._keybindingRegistered || Main.wm?.removeKeybinding) {
+            try {
+                Main.wm.removeKeybinding('toggle-dashboard');
+            } catch (e) {}
+            this._keybindingRegistered = false;
+        }
+    }
+
+    _checkNotifications(data) {
+        if (!data || data.user?.ls_online === false) {
+            return;
+        }
+
+        if (!this._notifyInitialized) {
+            // First load: initialize current percentages silently without false alarms
+            if (Array.isArray(data.quota_groups)) {
+                for (const group of data.quota_groups) {
+                    if (Array.isArray(group.buckets)) {
+                        for (const bucket of group.buckets) {
+                            const key = `${group.id || 'group'}:${bucket.id || 'bucket'}`;
+                            const currentCycle = bucket.reset_in || 'cycle';
+                            if (!this._notifyState[key] || this._notifyState[key].cycle !== currentCycle) {
+                                const pct = Number(bucket.remaining_pct || 0);
+                                this._notifyState[key] = {
+                                    cycle: currentCycle,
+                                    pct: pct,
+                                    warned_20: (pct < 20),
+                                    warned_10: (pct < 10),
+                                };
+                            }
+                        }
+                    }
+                }
+                saveNotifyState(this._notifyState);
+            }
+            this._notifyInitialized = true;
+            return;
+        }
+
+        // Subsequent fetches: detect cycle renewals and quota drops
+        let stateChanged = false;
+        const activeModel = data.active_context?.active_model || '';
+        const activeGroupId = data.primary_quota?.group_id || data.primary_quota?.id || '';
+
+        if (Array.isArray(data.quota_groups)) {
+            for (const group of data.quota_groups) {
+                const isGroupActive = (group.id === activeGroupId) ||
+                    (activeModel && (group.name?.toLowerCase().includes(activeModel.toLowerCase()) || activeModel.toLowerCase().includes(group.id?.toLowerCase())));
+
+                if (!Array.isArray(group.buckets)) continue;
+
+                for (const bucket of group.buckets) {
+                    const key = `${group.id || 'group'}:${bucket.id || 'bucket'}`;
+                    const currentCycle = bucket.reset_in || 'cycle';
+                    const pct = Number(bucket.remaining_pct || 0);
+
+                    const prev = this._notifyState[key] || {
+                        cycle: currentCycle,
+                        pct: pct,
+                        warned_20: false,
+                        warned_10: false,
+                    };
+
+                    // Check cycle reset: cycle changed or percentage jumped from < 90% to >= 99.5%
+                    if (prev.cycle !== currentCycle || (prev.pct < 90 && pct >= 99.5)) {
+                        if (prev.pct < 90 && pct >= 99.5 && isGroupActive) {
+                            try {
+                                const modelTitle = bucket.label || formatDisplayGroupName(group);
+                                Main.notify('Antigravity View Usage', `Cota renovada! ${modelTitle} restaurada para 100%.`);
+                            } catch (e) {
+                                console.warn(`[Antigravity-vU] Notification error: ${e.message}`);
+                            }
+                        }
+                        prev.cycle = currentCycle;
+                        prev.pct = pct;
+                        prev.warned_20 = false;
+                        prev.warned_10 = false;
+                        stateChanged = true;
+                    }
+
+                    // Check drops on active quota
+                    if (isGroupActive) {
+                        if (pct < 10 && !prev.warned_10) {
+                            try {
+                                const modelTitle = bucket.label || formatDisplayGroupName(group);
+                                Main.notify('Antigravity View Usage', `Crítico: Cota de ${modelTitle} está em ${pct.toFixed(0)}%! (Redefine em ${bucket.reset_in || '--'})`);
+                            } catch (e) {
+                                console.warn(`[Antigravity-vU] Notification error: ${e.message}`);
+                            }
+                            prev.warned_10 = true;
+                            prev.warned_20 = true;
+                            stateChanged = true;
+                        } else if (pct < 20 && !prev.warned_20) {
+                            try {
+                                const modelTitle = bucket.label || formatDisplayGroupName(group);
+                                Main.notify('Antigravity View Usage', `Atenção: Cota de ${modelTitle} caiu para ${pct.toFixed(0)}%! (Redefine em ${bucket.reset_in || '--'})`);
+                            } catch (e) {
+                                console.warn(`[Antigravity-vU] Notification error: ${e.message}`);
+                            }
+                            prev.warned_20 = true;
+                            stateChanged = true;
+                        }
+                    }
+
+                    prev.pct = pct;
+                    this._notifyState[key] = prev;
+                }
+            }
+        }
+
+        if (stateChanged) {
+            saveNotifyState(this._notifyState);
         }
     }
 
@@ -458,6 +683,7 @@ export const AntigravityIndicator = GObject.registerClass({
                         const data = JSON.parse(stdout);
                         this._lastData = data;
                         this._updatePill(data);
+                        this._checkNotifications(data);
                         if (this.menu.isOpen) {
                             this._renderMenuContent();
                         }
@@ -643,19 +869,38 @@ export const AntigravityIndicator = GObject.registerClass({
                             text: bucket.label || bucket.id,
                             style_class: 'ag-bucket-label',
                             x_expand: true,
+                            y_align: Clutter.ActorAlign.CENTER,
                         });
                         bucketRow.add_child(bucketLabel);
+
+                        if (bucket.pace_status === 'fast') {
+                            const exhaustStr = bucket.estimated_exhaust_in ? `⚡ ~${bucket.estimated_exhaust_in}` : '⚡ ritmo';
+                            const paceBadge = new St.Label({
+                                text: exhaustStr,
+                                style_class: 'ag-pace-fast-badge',
+                                y_align: Clutter.ActorAlign.CENTER,
+                            });
+                            bucketRow.add_child(paceBadge);
+                        }
 
                         const pct = Number(bucket.remaining_pct || 0);
                         const metaLabel = new St.Label({
                             text: `${pct.toFixed(1)}% • ${bucket.reset_in || '--'}`,
                             style_class: 'ag-bucket-meta',
+                            y_align: Clutter.ActorAlign.CENTER,
                         });
                         bucketRow.add_child(metaLabel);
                         groupCard.add_child(bucketRow);
 
-                        // Visual progress bar (max 310px to fit 345px col)
-                        const track = createHBox('ag-bar-track');
+                        // Visual progress bar with BinLayout overlay for pace marker (max 310px to fit 345px col)
+                        const track = new St.Widget({
+                            style_class: 'ag-bar-track',
+                            layout_manager: new Clutter.BinLayout(),
+                            width: 310,
+                            height: 6,
+                            x_expand: false,
+                            y_expand: false,
+                        });
 
                         const fillWidth = Math.max(6, Math.round((pct / 100) * 310));
                         let fillClass = 'ag-bar-fill-healthy';
@@ -668,11 +913,30 @@ export const AntigravityIndicator = GObject.registerClass({
                         const fill = new St.Widget({
                             style_class: fillClass,
                             width: fillWidth,
-                            height: 5,
+                            height: 6,
+                            x_align: Clutter.ActorAlign.START,
+                            y_align: Clutter.ActorAlign.FILL,
                             x_expand: false,
                             y_expand: false,
                         });
                         track.add_child(fill);
+
+                        if (bucket.expected_remaining_pct !== undefined && bucket.expected_remaining_pct !== null) {
+                            const expPct = Math.max(0, Math.min(100, Number(bucket.expected_remaining_pct)));
+                            const markerOffset = Math.max(0, Math.min(308, Math.round((expPct / 100) * 310)));
+                            const paceMarker = new St.Widget({
+                                style_class: 'ag-pace-marker',
+                                width: 2,
+                                height: 6,
+                                x_align: Clutter.ActorAlign.START,
+                                y_align: Clutter.ActorAlign.FILL,
+                                x_expand: false,
+                                y_expand: false,
+                                margin_left: markerOffset,
+                            });
+                            track.add_child(paceMarker);
+                        }
+
                         groupCard.add_child(track);
                     }
                 }
@@ -899,6 +1163,88 @@ export const AntigravityIndicator = GObject.registerClass({
 
         rightCol.add_child(tokenCardsBox);
 
+        // 7-Day Activity Mini-Histogram
+        if (Array.isArray(data.daily_history) && data.daily_history.length > 0) {
+            const history = data.daily_history;
+            const total7d = history.reduce((sum, h) => sum + (h.total_tokens || 0), 0);
+            const total7dFormatted = formatTokensShort(total7d);
+            const defaultHeaderText = `Atividade 7d • Total: ${total7dFormatted}`;
+
+            const histCard = createVBox('ag-histogram-card');
+
+            const histHeader = new St.Label({
+                text: defaultHeaderText,
+                style_class: 'ag-histogram-header',
+                x_expand: true,
+            });
+            histCard.add_child(histHeader);
+
+            const barsRow = createHBox('ag-histogram-bars', 4);
+            barsRow.x_expand = true;
+
+            const maxVal = Math.max(1, ...history.map(h => h.total_tokens || 0));
+
+            history.forEach((dayItem, idx) => {
+                const isToday = (idx === history.length - 1);
+                const dayTokens = dayItem.total_tokens || 0;
+                const barH = dayTokens > 0 ? Math.max(2, Math.round((dayTokens / maxVal) * 20)) : 1;
+
+                const col = createVBox('ag-hist-col');
+                col.x_expand = true;
+                col.x_align = Clutter.ActorAlign.CENTER;
+
+                const trackBox = new St.Widget({
+                    style_class: 'ag-hist-track',
+                    layout_manager: new Clutter.BinLayout(),
+                    width: 32,
+                    height: 22,
+                    x_align: Clutter.ActorAlign.CENTER,
+                    y_align: Clutter.ActorAlign.END,
+                    x_expand: false,
+                    y_expand: false,
+                });
+
+                const barWidget = new St.Widget({
+                    style_class: `ag-hist-bar ${isToday ? 'ag-hist-bar-today' : ''}`,
+                    width: 28,
+                    height: barH,
+                    x_align: Clutter.ActorAlign.CENTER,
+                    y_align: Clutter.ActorAlign.END,
+                    x_expand: false,
+                    y_expand: false,
+                    reactive: true,
+                    track_hover: true,
+                });
+
+                barWidget.connect('notify::hover', () => {
+                    if (barWidget.hover) {
+                        barWidget.add_style_class_name('ag-hist-bar-hover');
+                        const labelText = isToday ? 'Hoje' : (dayItem.label || dayItem.day_label || dayItem.date);
+                        const dayValStr = dayItem.total_formatted || formatTokensShort(dayTokens);
+                        histHeader.text = `Atividade 7d • ${labelText}: ${dayValStr}`;
+                    } else {
+                        barWidget.remove_style_class_name('ag-hist-bar-hover');
+                        histHeader.text = defaultHeaderText;
+                    }
+                });
+
+                trackBox.add_child(barWidget);
+                col.add_child(trackBox);
+
+                const dayLbl = new St.Label({
+                    text: isToday ? 'Hoje' : (dayItem.label || dayItem.day_label || (dayItem.date ? dayItem.date.slice(5) : '--')),
+                    style_class: `ag-hist-day-label ${isToday ? 'ag-hist-day-today' : ''}`,
+                    x_align: Clutter.ActorAlign.CENTER,
+                });
+                col.add_child(dayLbl);
+
+                barsRow.add_child(col);
+            });
+
+            histCard.add_child(barsRow);
+            rightCol.add_child(histCard);
+        }
+
         // Top Projects (show top 3)
         if (Array.isArray(data.projects) && data.projects.length > 0) {
             const projHeading = new St.Label({
@@ -941,7 +1287,7 @@ export const AntigravityIndicator = GObject.registerClass({
         // ================= 3. FOOTER =================
         const now = new Date();
         const timeStr = now.toLocaleTimeString();
-        const verName = this._extension?.metadata?.['version-name'] || '1.4.1';
+        const verName = this._extension?.metadata?.['version-name'] || '1.5.0';
         const footerLabel = new St.Label({
             text: `Última atualização: ${timeStr} • Antigravity vU Linux v${verName}`,
             style_class: 'ag-footer-text',
@@ -951,6 +1297,8 @@ export const AntigravityIndicator = GObject.registerClass({
     }
 
     destroy() {
+        this._removeKeybinding();
+
         if (this._timerId) {
             GLib.source_remove(this._timerId);
             this._timerId = 0;
