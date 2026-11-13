@@ -284,9 +284,9 @@
 /* Main Content Box - Transparent to inherit native GNOME Shell Calendar style & blur */
 .ag-popup-menu {
     border-radius: 0;
-    padding: 10px 14px;
-    width: 420px;
-    min-width: 400px;
+    padding: 12px 16px;
+    width: 720px;
+    min-width: 700px;
     background-color: transparent !important;
     background: none !important;
     border: none !important;
@@ -299,6 +299,25 @@
     background: none !important;
     border: none !important;
     box-shadow: none !important;
+}
+
+/* 2-Column Balanced Dashboard Layout (Ubuntu Calendar style) */
+.ag-columns-box {
+    spacing: 14px;
+}
+
+.ag-col-left {
+    width: 345px;
+}
+
+.ag-col-right {
+    width: 335px;
+    border-left: 1px solid rgba(255, 255, 255, 0.08);
+    padding-left: 14px;
+}
+
+.ag-theme-light .ag-col-right {
+    border-left: 1px solid rgba(0, 0, 0, 0.08);
 }
 
 /* Header */
@@ -445,12 +464,12 @@
     opacity: 0.90;
 }
 
-/* Discrete Color Legend */
+/* Discrete Color Legend (2x2 Grid) */
 .ag-color-legend {
+    padding: 7px 10px;
     margin-top: 4px;
     margin-bottom: 6px;
-    padding: 4px 8px;
-    border-radius: 6px;
+    border-radius: 8px;
     background-color: rgba(255, 255, 255, 0.04);
     border: 1px solid rgba(255, 255, 255, 0.06);
 }
@@ -460,25 +479,29 @@
     border: 1px solid rgba(0, 0, 0, 0.05);
 }
 
-.ag-legend-item {
+.ag-legend-row {
+    spacing: 10px;
+}
+
+.ag-legend-cell {
+    spacing: 6px;
+}
+
+.ag-legend-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 3.5px;
+    y-align: center;
+}
+
+.ag-legend-text {
     font-size: 8pt;
     font-weight: 600;
+    color: #cbd5e1;
 }
 
-.ag-legend-healthy {
-    color: #22c55e;
-}
-
-.ag-legend-warning {
-    color: #f59e0b;
-}
-
-.ag-legend-critical {
-    color: #ef4444;
-}
-
-.ag-legend-working {
-    color: #38bdf8;
+.ag-theme-light .ag-legend-text {
+    color: #475569;
 }
 
 .ag-bucket-row {
@@ -611,11 +634,6 @@
 }
 
 /* Swarm Agents List */
-.ag-agents-scroll {
-    max-height: 135px;
-    margin-bottom: 4px;
-}
-
 .ag-agent-item {
     border-radius: 5px;
     padding: 3px 8px;

@@ -587,12 +587,29 @@ export const AntigravityIndicator = GObject.registerClass({
         headerBox.add_child(metaBox);
         this._contentBox.add_child(headerBox);
 
-        // ================= 2. QUOTAS SECTION =================
+        // ================= 2-COLUMN BALANCED CONTAINER =================
+        const columnsBox = createHBox('ag-columns-box', 14);
+        columnsBox.y_align = Clutter.ActorAlign.START;
+        columnsBox.x_expand = true;
+
+        const leftCol = createVBox('ag-col-left');
+        leftCol.y_align = Clutter.ActorAlign.START;
+        leftCol.x_expand = false;
+
+        const rightCol = createVBox('ag-col-right');
+        rightCol.y_align = Clutter.ActorAlign.START;
+        rightCol.x_expand = false;
+
+        columnsBox.add_child(leftCol);
+        columnsBox.add_child(rightCol);
+        this._contentBox.add_child(columnsBox);
+
+        // ================= LEFT COLUMN: 1. QUOTAS =================
         const quotaTitle = new St.Label({
             text: '📊 Quotas & Limites dos Modelos',
             style_class: 'ag-section-title',
         });
-        this._contentBox.add_child(quotaTitle);
+        leftCol.add_child(quotaTitle);
 
         if (Array.isArray(data.quota_groups)) {
             for (const group of data.quota_groups) {
@@ -637,10 +654,10 @@ export const AntigravityIndicator = GObject.registerClass({
                         bucketRow.add_child(metaLabel);
                         groupCard.add_child(bucketRow);
 
-                        // Visual progress bar
+                        // Visual progress bar (max 310px to fit 345px col)
                         const track = createHBox('ag-bar-track');
 
-                        const fillWidth = Math.max(6, Math.round((pct / 100) * 360));
+                        const fillWidth = Math.max(6, Math.round((pct / 100) * 310));
                         let fillClass = 'ag-bar-fill-healthy';
                         if (pct < 20) {
                             fillClass = 'ag-bar-fill-critical';
@@ -660,37 +677,57 @@ export const AntigravityIndicator = GObject.registerClass({
                     }
                 }
 
-                this._contentBox.add_child(groupCard);
+                leftCol.add_child(groupCard);
             }
 
-            // Discrete Color Legend
-            const legendBox = createHBox('ag-color-legend', 10);
-            legendBox.x_align = Clutter.ActorAlign.CENTER;
+            // ================= LEFT COLUMN: 2. DISCRETE 2x2 COLOR LEGEND =================
+            const legendCard = createVBox('ag-color-legend', 4);
 
-            const legendItems = [
-                { text: '● ≥50% Normal', class: 'ag-legend-healthy' },
-                { text: '● 20-49% Atenção', class: 'ag-legend-warning' },
-                { text: '● <20% Crítico', class: 'ag-legend-critical' },
-                { text: '● Agente Ativo', class: 'ag-legend-working' },
-            ];
+            const row1 = createHBox('ag-legend-row', 10);
+            const cell1 = createHBox('ag-legend-cell', 6);
+            cell1.x_expand = true;
+            const dot1 = new St.Widget({ style_class: 'ag-legend-dot ag-dot-healthy' });
+            const lbl1 = new St.Label({ text: '≥50% Normal', style_class: 'ag-legend-text' });
+            cell1.add_child(dot1);
+            cell1.add_child(lbl1);
+            row1.add_child(cell1);
 
-            for (const item of legendItems) {
-                const lbl = new St.Label({
-                    text: item.text,
-                    style_class: `ag-legend-item ${item.class}`,
-                    y_align: Clutter.ActorAlign.CENTER,
-                });
-                legendBox.add_child(lbl);
-            }
-            this._contentBox.add_child(legendBox);
+            const cell2 = createHBox('ag-legend-cell', 6);
+            cell2.x_expand = true;
+            const dot2 = new St.Widget({ style_class: 'ag-legend-dot ag-dot-warning' });
+            const lbl2 = new St.Label({ text: '20–49% Atenção', style_class: 'ag-legend-text' });
+            cell2.add_child(dot2);
+            cell2.add_child(lbl2);
+            row1.add_child(cell2);
+            legendCard.add_child(row1);
+
+            const row2 = createHBox('ag-legend-row', 10);
+            const cell3 = createHBox('ag-legend-cell', 6);
+            cell3.x_expand = true;
+            const dot3 = new St.Widget({ style_class: 'ag-legend-dot ag-dot-critical' });
+            const lbl3 = new St.Label({ text: '<20% Crítico', style_class: 'ag-legend-text' });
+            cell3.add_child(dot3);
+            cell3.add_child(lbl3);
+            row2.add_child(cell3);
+
+            const cell4 = createHBox('ag-legend-cell', 6);
+            cell4.x_expand = true;
+            const dot4 = new St.Widget({ style_class: 'ag-legend-dot ag-dot-working' });
+            const lbl4 = new St.Label({ text: 'Agente Ativo', style_class: 'ag-legend-text' });
+            cell4.add_child(dot4);
+            cell4.add_child(lbl4);
+            row2.add_child(cell4);
+            legendCard.add_child(row2);
+
+            leftCol.add_child(legendCard);
         }
 
-        // ================= 3. CONTEXT & SWARM =================
+        // ================= LEFT COLUMN: 3. ACTIVE SESSION =================
         const contextTitle = new St.Label({
-            text: '⚡ Sessão Ativa & Swarm',
+            text: '⚡ Sessão Ativa',
             style_class: 'ag-section-title',
         });
-        this._contentBox.add_child(contextTitle);
+        leftCol.add_child(contextTitle);
 
         const contextCard = createVBox('ag-context-card');
 
@@ -749,16 +786,16 @@ export const AntigravityIndicator = GObject.registerClass({
         chipsBox.add_child(outChip);
 
         contextCard.add_child(chipsBox);
-        this._contentBox.add_child(contextCard);
+        leftCol.add_child(contextCard);
 
-        // Swarm Agents List
+        // ================= RIGHT COLUMN: 1. SWARM AGENTS (NO SCROLLVIEW) =================
         const swarmActive = data.swarm?.active_count || 0;
         const swarmTotal = data.swarm?.total_alive || 0;
         const swarmHeading = new St.Label({
-            text: `Agentes do Swarm (${swarmActive} ativos / ${swarmTotal} total):`,
+            text: `🤖 Agentes do Swarm (${swarmActive} ativos / ${swarmTotal} total):`,
             style_class: 'ag-section-title',
         });
-        this._contentBox.add_child(swarmHeading);
+        rightCol.add_child(swarmHeading);
 
         if (Array.isArray(data.swarm?.agents) && data.swarm.agents.length > 0) {
             const agentsContainer = createVBox(null, 2);
@@ -792,33 +829,21 @@ export const AntigravityIndicator = GObject.registerClass({
                 agentsContainer.add_child(agentRow);
             }
 
-            // Compact scroll if swarm has more than 4 agents
-            if (data.swarm.agents.length > 4) {
-                const agentsScroll = new St.ScrollView({
-                    style_class: 'ag-agents-scroll',
-                    overlay_scrollbars: true,
-                    style: 'max-height: 135px;',
-                    x_expand: true,
-                });
-                agentsScroll.set_child(agentsContainer);
-                this._contentBox.add_child(agentsScroll);
-            } else {
-                this._contentBox.add_child(agentsContainer);
-            }
+            rightCol.add_child(agentsContainer);
         } else {
             const noAgentsLabel = new St.Label({
                 text: 'Nenhum subagente ativo no momento.',
                 style_class: 'ag-session-title',
             });
-            this._contentBox.add_child(noAgentsLabel);
+            rightCol.add_child(noAgentsLabel);
         }
 
-        // ================= 4. MONTHLY TOKENS & TOP PROJECTS =================
+        // ================= RIGHT COLUMN: 2. MONTHLY CONSUMPTION & TOP PROJECTS =================
         const monthTitle = new St.Label({
             text: `📈 Consumo no Mês (${data.monthly_tokens?.month || '--'}) • Total: ${data.monthly_tokens?.total_formatted || '0'}`,
             style_class: 'ag-section-title',
         });
-        this._contentBox.add_child(monthTitle);
+        rightCol.add_child(monthTitle);
 
         // 3 Cards layout
         const tokenCardsBox = createHBox(null, 6);
@@ -845,7 +870,7 @@ export const AntigravityIndicator = GObject.registerClass({
             tokenCardsBox.add_child(cBox);
         }
 
-        this._contentBox.add_child(tokenCardsBox);
+        rightCol.add_child(tokenCardsBox);
 
         // Top Projects (show top 3)
         if (Array.isArray(data.projects) && data.projects.length > 0) {
@@ -853,7 +878,7 @@ export const AntigravityIndicator = GObject.registerClass({
                 text: 'Top Projetos:',
                 style_class: 'ag-section-title',
             });
-            this._contentBox.add_child(projHeading);
+            rightCol.add_child(projHeading);
 
             const topProjects = data.projects.slice(0, 3);
             for (const proj of topProjects) {
@@ -882,14 +907,14 @@ export const AntigravityIndicator = GObject.registerClass({
                 });
                 pBox.add_child(pDetails);
 
-                this._contentBox.add_child(pBox);
+                rightCol.add_child(pBox);
             }
         }
 
-        // ================= 5. FOOTER =================
+        // ================= 3. FOOTER =================
         const now = new Date();
         const timeStr = now.toLocaleTimeString();
-        const verName = this._extension?.metadata?.['version-name'] || '1.2.3';
+        const verName = this._extension?.metadata?.['version-name'] || '1.4.0';
         const footerLabel = new St.Label({
             text: `Última atualização: ${timeStr} • Antigravity vU Linux v${verName}`,
             style_class: 'ag-footer-text',
