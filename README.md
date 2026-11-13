@@ -41,7 +41,7 @@
 | Estágio | Comportamento | Visual |
 | :--- | :--- | :--- |
 | **1. Pílula Estável na Top Bar** | Cápsula única (28px) com data/hora nativas, dot indicador de saúde e cota do modelo ativo no momento. No hover, ganha realce sutil em retângulo com cantos arredondados (padrão Ubuntu System Tray). | `[ 12 de nov 17:30 │ ● 4 Hydrogen 48% ]` |
-| **2. Dashboard Completo** | Ao clicar, abre o menu suspenso translúcido nativo (estilo Calendar do Ubuntu) com barras de progresso, legenda de cores, métricas de contexto, swarm ativo e histórico de tokens. | *(Popup expansivo de alta densidade informativa)* |
+| **2. Dashboard Completo (2 Colunas, 720px)** | Ao clicar, abre o menu suspenso translúcido estilo Calendar do Ubuntu distribuído em 2 colunas: à esquerda, Cotas, Legenda 2×2 e Sessão Ativa; à direita, Agentes do Swarm completos sem corte, Consumo no Mês e Top Projetos. | *(Popup expansivo de 720px com visual nativo do sistema)* |
 
 ### 🎨 Significado das Cores do Indicador
 - 🟢 **Verde (`#22c55e`)**: Quota Normal / Saudável (`≥ 50%`)

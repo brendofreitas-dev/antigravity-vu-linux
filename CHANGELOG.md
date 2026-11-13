@@ -7,6 +7,26 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ---
 
+## [1.4.0] - 2026-11-13
+
+### Adicionado
+- **Layout em 2 colunas equilibradas (720px estilo Ubuntu Calendar)**:
+  - Painel expandido para 720px com distribuição harmoniosa em duas colunas.
+  - **Coluna Esquerda (345px)**: Cotas de modelos com barras proporcionais (máximo 310px), Legenda de cores em grade 2×2 e Sessão Ativa com badge do modelo em uso e chips de tokens (`In / Cache / Out`).
+  - **Coluna Direita (335px)**: Lista completa dos Agentes do Swarm com divisória sutil à esquerda, painel de Consumo Mensal com tokens agregados e ranking de Top Projetos.
+- **Legenda de cores em grade 2×2 (`.ag-color-legend`)**:
+  - Pontos reais `St.Widget` (7×7px) dispostos em grade 2×2 espaçada e limpa:
+    - Linha 1: `● ≥50% Normal`  |  `● 20–49% Atenção`
+    - Linha 2: `● <20% Crítico`  |  `● Agente Ativo`
+
+### Alterado
+- **Exibição direta dos Agentes do Swarm sem corte**:
+  - Removido completamente o `St.ScrollView` da lista de agentes; todos os agentes do Swarm são exibidos diretamente na coluna direita, sem barras de rolagem cinzentas cortando o status ou a contagem de steps.
+- **Metadados**:
+  - `extension/metadata.json` atualizado para `version: 9` e `version-name: "1.4.0"`.
+
+---
+
 ## [1.3.1] - 2026-11-12
 
 ### Corrigido

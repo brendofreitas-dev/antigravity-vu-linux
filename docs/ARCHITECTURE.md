@@ -161,29 +161,29 @@ A partir da versão **v1.3.0**, a interface foi simplificada para **dois estági
                           Clique do Usuário
                                 ▼
 +-------------------------------------------------------------+
-| ESTÁGIO 2: Dashboard Glassmorphism (PopupMenu)              |
-|                                                             |
-|   ANTIGRAVITY VIEW USAGE                Pro [ONLINE] [ ↻ ]  |
-|   ───────────────────────────────────────────────────────   |
-|   QUOTA TRACKER (VIEW USAGE)                                |
-|     Gemini 4 Argon     [████░░░░░░]  31.4%   Reset: 3d 5h   |
-|     Gemini Models      [███████░░░]  64.3%   Reset: 3d 5h   |
-|     Claude & GPT (3P)  [██████████] 100.0%   Reset: 6d 23h  |
-|                                                             |
-|   LEGENDA DE CORES                                          |
-|     ● ≥50% Normal  ● 20-49% Atenção  ● <20% Crítico  ● Ativo|
-|                                                             |
-|   CONTEXTO & SWARM ATIVO                                    |
-|     Projeto: antigravity-vU-linux     Ctx Total: 48.2k      |
-|     In: 12.4k  │  Prompt Cache: 35.8k  │  Out: 4.1k         |
-|     ● coordinator [WORKING] (14 steps)                      |
-|     ● explorer    [WORKING] (8 steps)                       |
-|     ● gnome-dev   [WORKING] (4 steps)                       |
-|                                                             |
-|   TOKENS DO MÊS (2026-11) & PROJETOS                        |
-|     [ IN: 1.25M ]      [ CACHE: 8.42M ]    [ OUT: 185k ]    |
-|     1. antigravity-vU-linux (3.61M)                         |
-+-------------------------------------------------------------+
+| ESTÁGIO 2: Dashboard 2 Colunas (PopupMenu, 720px - v1.4.0)                                    |
+|                                                                                                |
+|   ANTIGRAVITY VIEW USAGE                                            Pro [ONLINE] [ ↻ ]         |
+|   ─────────────────────────────────────────────────────────────────────────────────────────   |
+|   COLUNA ESQUERDA (345px)                     │ COLUNA DIREITA (335px)                        |
+|                                               │                                               |
+|   QUOTA TRACKER (VIEW USAGE)                  │ AGENTES DO SWARM (Sem Scroll)                 |
+|     Gemini 3.8 & 4 Hydrogen                   │   ● coordinator [WORKING] (28 steps)          |
+|     [████████░░░] 64.3%  Reset: 3d 5h         │   ● explorer    [WORKING] (14 steps)          |
+|     Gemini 4 Argon                            │   ● gnome-dev   [WORKING] (18 steps)          |
+|     [████░░░░░░] 31.4%   Reset: 3d 5h         │   ● verifier    [WORKING] (12 steps)          |
+|     Claude & GPT (Opus / Sonnet / GPT)        │   ● docs-agent  [WORKING] (10 steps)          |
+|     [██████████] 100.0%  Reset: 6d 23h        │   ● git-release [WORKING] (8 steps)           |
+|                                               │                                               |
+|   LEGENDA DE CORES (Grade 2×2)                │ TOKENS DO MÊS & PROJETOS                      |
+|     ● ≥50% Normal     ● 20–49% Atenção        │   [ IN: 1.25M ]  [ CACHE: 8.42M ]  [ OUT: 185k]
+|     ● <20% Crítico    ● Agente Ativo          │   1. antigravity-vU-linux (3.61M)             |
+|                                               │   2. darmoshark-m3-linux (1.20M)              |
+|   SESSÃO ATIVA                                │                                               |
+|     Projeto: antigravity-vU-linux             │                                               |
+|     🤖 Gemini 4 Hydrogen (XHigh)              │                                               |
+|     Ctx: 48.2k  │ In: 12.4k │ Cache: 35.8k    │                                               |
++-----------------------------------------------------------------------------------------------+
 ```
 
 ### 4.4. Ciclo Assíncrono e Consumo de Recursos
