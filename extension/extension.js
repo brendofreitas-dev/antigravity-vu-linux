@@ -5,30 +5,62 @@
  * SPDX-License-Identifier: MIT
  */
 
+import Gio from 'gi://Gio';
 import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
 
 export default class AntigravityExtension extends Extension {
-    async enable() {
+    _getIslandModuleUrl() {
+        const islandPath = `${this.path}/island.js`;
         try {
-            // Dynamic import with file:// URI scheme and timestamp query parameter busts the GJS module cache,
-            // allowing true hot-reloading of code changes without logging out of the Wayland session!
-            const moduleUrl = `file://${this.path}/island.js?t=${Date.now()}`;
-            const { initIsland, disableIsland } = await import(moduleUrl);
-            this._disableIsland = disableIsland;
-            this._indicator = await initIsland(this);
+            const file = Gio.File.new_for_path(islandPath);
+            const info = file.query_info(
+                'time::modified,time::modified-usec,standard::size',
+                Gio.FileQueryInfoFlags.NONE,
+                null
+            );
+            const sec = info.get_attribute_uint64('time::modified');
+            const usec = info.get_attribute_uint32('time::modified-usec');
+            const size = info.get_attribute_uint64('standard::size');
+            return `file://${islandPath}?v=${sec}_${usec}_${size}`;
         } catch (e) {
-            console.warn(`[Antigravity-vU] Dynamic cache-busting import failed: ${e.message}, attempting static import...`);
-            try {
-                const { initIsland, disableIsland } = await import('./island.js');
-                this._disableIsland = disableIsland;
-                this._indicator = await initIsland(this);
-            } catch (fallbackErr) {
-                console.error(`[Antigravity-vU] Static import fallback failed: ${fallbackErr.message}`, fallbackErr);
-            }
+            return `file://${islandPath}`;
         }
     }
 
+    async enable() {
+        this._enabled = true;
+        let islandModule = null;
+
+        try {
+            const moduleUrl = this._getIslandModuleUrl();
+            islandModule = await import(moduleUrl);
+        } catch (e) {
+            console.warn(`[Antigravity-vU] Deterministic cache import failed: ${e.message}, attempting static import fallback...`);
+            try {
+                islandModule = await import('./island.js');
+            } catch (fallbackErr) {
+                console.error(`[Antigravity-vU] Static import fallback failed: ${fallbackErr.message}`, fallbackErr);
+                throw fallbackErr;
+            }
+        }
+
+        // Abort if extension was disabled while awaiting the import
+        if (!this._enabled) {
+            if (islandModule?.disableIsland) {
+                try {
+                    islandModule.disableIsland();
+                } catch (err) {}
+            }
+            return;
+        }
+
+        this._disableIsland = islandModule.disableIsland;
+        this._indicator = await islandModule.initIsland(this);
+    }
+
     disable() {
+        this._enabled = false;
+
         if (this._disableIsland) {
             try {
                 this._disableIsland();
@@ -36,9 +68,8 @@ export default class AntigravityExtension extends Extension {
                 console.warn(`[Antigravity-vU] Error in disableIsland: ${e.message}`);
             }
             this._disableIsland = null;
-        }
-
-        if (this._indicator) {
+            this._indicator = null;
+        } else if (this._indicator) {
             try {
                 this._indicator.destroy();
             } catch (e) {

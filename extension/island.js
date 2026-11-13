@@ -197,12 +197,26 @@ function resolveCollectorCmd(extensionPath) {
     return cmd;
 }
 
+function resolveUniqueGTypeName(baseName) {
+    if (!GObject.type_from_name(baseName)) {
+        return baseName;
+    }
+    let i = 2;
+    while (GObject.type_from_name(`${baseName}_${i}`)) {
+        i++;
+    }
+    return `${baseName}_${i}`;
+}
+
+const INDICATOR_GTYPE_NAME = resolveUniqueGTypeName('AntigravityUnifiedIndicator');
+
 export const AntigravityIndicator = GObject.registerClass({
-    GTypeName: 'AntigravityUnifiedIndicator'
+    GTypeName: INDICATOR_GTYPE_NAME,
 }, class AntigravityUnifiedIndicator extends PanelMenu.Button {
     _init(extension) {
-        super._init(0.0, 'AntigravityUnifiedIndicator', false);
+        super._init(0.0, INDICATOR_GTYPE_NAME, false);
 
+        this._destroyed = false;
         this._extension = extension;
         this._cancellable = new Gio.Cancellable();
         this._timerId = 0;
@@ -214,6 +228,7 @@ export const AntigravityIndicator = GObject.registerClass({
         this._selfHoverId = 0;
         this._menuStateId = 0;
         this._dateMenuStateId = 0;
+        this._openStateId = 0;
 
         this.add_style_class_name('ag-panel-button');
         this.add_style_class_name('ag-unified-island-indicator');
@@ -225,11 +240,13 @@ export const AntigravityIndicator = GObject.registerClass({
         this._buildMenuShell();
 
         // Connect menu state to re-render when opening
-        this.menu.connect('open-state-changed', (menu, isOpen) => {
-            if (isOpen) {
-                this._renderMenuContent();
-            }
-        });
+        if (this.menu) {
+            this._openStateId = this.menu.connect('open-state-changed', (menu, isOpen) => {
+                if (isOpen && !this._destroyed) {
+                    this._renderMenuContent();
+                }
+            });
+        }
 
         // Initialize and listen to desktop theme changes (Light/Dark + Accent Color)
         this._initThemeListener();
@@ -253,6 +270,9 @@ export const AntigravityIndicator = GObject.registerClass({
             GLib.PRIORITY_DEFAULT,
             POLL_INTERVAL_SECONDS,
             () => {
+                if (this._destroyed) {
+                    return GLib.SOURCE_REMOVE;
+                }
                 this._fetchData();
                 return GLib.SOURCE_CONTINUE;
             }
@@ -677,14 +697,20 @@ export const AntigravityIndicator = GObject.registerClass({
 
             proc.communicate_utf8_async(null, this._cancellable, (p, res) => {
                 this._isRefreshing = false;
+                if (this._destroyed) {
+                    return;
+                }
                 try {
                     const [, stdout, stderr] = p.communicate_utf8_finish(res);
+                    if (this._destroyed) {
+                        return;
+                    }
                     if (p.get_successful()) {
                         const data = JSON.parse(stdout);
                         this._lastData = data;
                         this._updatePill(data);
                         this._checkNotifications(data);
-                        if (this.menu.isOpen) {
+                        if (this.menu && this.menu.isOpen) {
                             this._renderMenuContent();
                         }
                     } else {
@@ -1287,7 +1313,7 @@ export const AntigravityIndicator = GObject.registerClass({
         // ================= 3. FOOTER =================
         const now = new Date();
         const timeStr = now.toLocaleTimeString();
-        const verName = this._extension?.metadata?.['version-name'] || '1.5.0';
+        const verName = this._extension?.metadata?.['version-name'] || '1.5.1';
         const footerLabel = new St.Label({
             text: `Última atualização: ${timeStr} • Antigravity vU Linux v${verName}`,
             style_class: 'ag-footer-text',
@@ -1297,6 +1323,11 @@ export const AntigravityIndicator = GObject.registerClass({
     }
 
     destroy() {
+        if (this._destroyed) {
+            return;
+        }
+        this._destroyed = true;
+
         this._removeKeybinding();
 
         if (this._timerId) {
@@ -1304,15 +1335,22 @@ export const AntigravityIndicator = GObject.registerClass({
             this._timerId = 0;
         }
 
+        if (this._openStateId && this.menu) {
+            this.menu.disconnect(this._openStateId);
+            this._openStateId = 0;
+        }
+
         if (this._settingsChangedId && this._desktopSettings) {
             this._desktopSettings.disconnect(this._settingsChangedId);
             this._settingsChangedId = 0;
         }
+        this._desktopSettings = null;
 
         if (this._themeContextChangedId && this._themeContext) {
             this._themeContext.disconnect(this._themeContextChangedId);
             this._themeContextChangedId = 0;
         }
+        this._themeContext = null;
 
         if (this._cancellable) {
             this._cancellable.cancel();
@@ -1328,6 +1366,19 @@ export const AntigravityIndicator = GObject.registerClass({
 let currentIndicator = null;
 
 export async function initIsland(extension) {
+    if (currentIndicator) {
+        try {
+            currentIndicator.destroy();
+        } catch (e) {}
+        currentIndicator = null;
+    }
+
+    if (Main.panel.statusArea[extension.uuid]) {
+        try {
+            Main.panel.statusArea[extension.uuid].destroy();
+        } catch (e) {}
+    }
+
     currentIndicator = new AntigravityIndicator(extension);
     Main.panel.addToStatusArea(extension.uuid, currentIndicator, 1, 'center');
     return currentIndicator;
@@ -1335,7 +1386,9 @@ export async function initIsland(extension) {
 
 export function disableIsland() {
     if (currentIndicator) {
-        currentIndicator.destroy();
+        try {
+            currentIndicator.destroy();
+        } catch (e) {}
         currentIndicator = null;
     }
 }
