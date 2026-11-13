@@ -68,6 +68,112 @@ def calculate_status_level(remaining_pct: float) -> str:
     return "critical"
 
 
+def format_duration_friendly(seconds: float) -> str:
+    """Format duration in seconds into friendly string (e.g. ~1d 4h, ~2h 15m, ~45m)."""
+    total_sec = max(0, int(seconds + 0.5))
+    days = total_sec // 86400
+    hours = (total_sec % 86400) // 3600
+    mins = (total_sec % 3600) // 60
+    if days > 0:
+        return f"~{days}d {hours}h"
+    if hours > 0:
+        if mins > 0:
+            return f"~{hours}h {mins}m"
+        return f"~{hours}h"
+    return f"~{max(1, mins)}m"
+
+
+def calculate_quota_pacing(
+    window: str,
+    remaining_pct: float,
+    reset_time_str: str,
+    now_dt: Optional[datetime.datetime] = None,
+) -> Dict[str, Any]:
+    """
+    Calculate burn rate, pacing marker and exhaustion forecast for a quota window.
+    Supports 'weekly' (604800s) and '5h' (18000s) windows.
+    """
+    durations = {"weekly": 604800.0, "5h": 18000.0}
+    window_duration_sec = durations.get(window)
+    consumed_pct = round(100.0 - remaining_pct, 1)
+
+    if not window_duration_sec or not reset_time_str:
+        return {
+            "window_duration_sec": window_duration_sec,
+            "elapsed_sec": None,
+            "secs_to_reset": None,
+            "elapsed_pct": None,
+            "expected_remaining_pct": None,
+            "consumed_pct": consumed_pct,
+            "pace_delta_pct": None,
+            "pace_status": "unknown",
+            "estimated_exhaust_in": None,
+        }
+
+    try:
+        clean_str = reset_time_str.replace("Z", "+00:00")
+        target_dt = datetime.datetime.fromisoformat(clean_str)
+        if target_dt.tzinfo is None:
+            target_dt = target_dt.replace(tzinfo=datetime.timezone.utc)
+        if now_dt is None:
+            now_dt = datetime.datetime.now(datetime.timezone.utc)
+        elif now_dt.tzinfo is None:
+            now_dt = now_dt.replace(tzinfo=datetime.timezone.utc)
+    except Exception:
+        return {
+            "window_duration_sec": window_duration_sec,
+            "elapsed_sec": None,
+            "secs_to_reset": None,
+            "elapsed_pct": None,
+            "expected_remaining_pct": None,
+            "consumed_pct": consumed_pct,
+            "pace_delta_pct": None,
+            "pace_status": "unknown",
+            "estimated_exhaust_in": None,
+        }
+
+    diff = target_dt - now_dt
+    secs_to_reset = max(0.0, diff.total_seconds())
+
+    elapsed_sec = max(0.0, min(window_duration_sec, window_duration_sec - secs_to_reset))
+    elapsed_pct = round(max(0.0, min(100.0, (elapsed_sec / window_duration_sec) * 100.0)), 1)
+    expected_remaining_pct = round(100.0 - elapsed_pct, 1)
+    pace_delta_pct = round(remaining_pct - expected_remaining_pct, 1)
+
+    # pace_status logic:
+    # "fast" quando pace_delta_pct <= -5.0 e elapsed_pct >= 2.0 e remaining_pct < 98.0
+    # "slow" quando pace_delta_pct >= 5.0
+    # caso contrário "normal"
+    if pace_delta_pct <= -5.0 and elapsed_pct >= 2.0 and remaining_pct < 98.0:
+        pace_status = "fast"
+    elif pace_delta_pct >= 5.0:
+        pace_status = "slow"
+    else:
+        pace_status = "normal"
+
+    # estimated_exhaust_in logic:
+    # se pace_status == "fast", elapsed_sec >= 300, consumed_pct >= 2.0 e secs_to_exhaust < secs_to_reset; caso contrário None
+    estimated_exhaust_in = None
+    if pace_status == "fast" and elapsed_sec >= 300 and consumed_pct >= 2.0 and remaining_pct > 0.0:
+        burn_rate = consumed_pct / elapsed_sec
+        if burn_rate > 0:
+            secs_to_exhaust = remaining_pct / burn_rate
+            if secs_to_exhaust < secs_to_reset:
+                estimated_exhaust_in = format_duration_friendly(secs_to_exhaust)
+
+    return {
+        "window_duration_sec": window_duration_sec,
+        "elapsed_sec": round(elapsed_sec, 1),
+        "secs_to_reset": round(secs_to_reset, 1),
+        "elapsed_pct": elapsed_pct,
+        "expected_remaining_pct": expected_remaining_pct,
+        "consumed_pct": consumed_pct,
+        "pace_delta_pct": pace_delta_pct,
+        "pace_status": pace_status,
+        "estimated_exhaust_in": estimated_exhaust_in,
+    }
+
+
 class AntigravityCollector:
     """Main collector engine for Google Antigravity telemetry and metrics."""
 
@@ -315,6 +421,9 @@ class AntigravityCollector:
                 "remaining_pct": 100.0,
                 "reset_in": "--",
                 "status_level": "healthy",
+                "pace_status": "unknown",
+                "estimated_exhaust_in": None,
+                "expected_remaining_pct": None,
             }
             return fallback_primary, []
 
@@ -384,6 +493,7 @@ class AntigravityCollector:
                 reset_time = b.get("resetTime", "")
                 reset_in = parse_reset_in(reset_time)
 
+                pacing = calculate_quota_pacing(b_window, rem_pct, reset_time)
                 label = "Weekly" if b_window == "weekly" else ("5-Hour" if b_window == "5h" else b_window.capitalize())
                 bucket_dict = {
                     "id": b_id,
@@ -392,6 +502,12 @@ class AntigravityCollector:
                     "remaining_pct": rem_pct,
                     "reset_time": reset_time,
                     "reset_in": reset_in,
+                    "elapsed_pct": pacing["elapsed_pct"],
+                    "expected_remaining_pct": pacing["expected_remaining_pct"],
+                    "consumed_pct": pacing["consumed_pct"],
+                    "pace_delta_pct": pacing["pace_delta_pct"],
+                    "pace_status": pacing["pace_status"],
+                    "estimated_exhaust_in": pacing["estimated_exhaust_in"],
                 }
                 buckets_out.append(bucket_dict)
 
@@ -403,6 +519,9 @@ class AntigravityCollector:
                     "remaining_pct": rem_pct,
                     "reset_in": reset_in,
                     "status_level": calculate_status_level(rem_pct),
+                    "pace_status": pacing["pace_status"],
+                    "estimated_exhaust_in": pacing["estimated_exhaust_in"],
+                    "expected_remaining_pct": pacing["expected_remaining_pct"],
                 }
 
                 if lowest_bucket is None or rem_pct < lowest_bucket["remaining_pct"]:
@@ -466,6 +585,9 @@ class AntigravityCollector:
                 "remaining_pct": 100.0,
                 "reset_in": "--",
                 "status_level": "healthy",
+                "pace_status": "unknown",
+                "estimated_exhaust_in": None,
+                "expected_remaining_pct": None,
             }
         else:
             selected = {
@@ -474,6 +596,9 @@ class AntigravityCollector:
                 "remaining_pct": selected["remaining_pct"],
                 "reset_in": selected["reset_in"],
                 "status_level": selected["status_level"],
+                "pace_status": selected.get("pace_status", "normal"),
+                "estimated_exhaust_in": selected.get("estimated_exhaust_in"),
+                "expected_remaining_pct": selected.get("expected_remaining_pct"),
             }
 
         return selected, groups_out
@@ -672,7 +797,7 @@ class AntigravityCollector:
     # ------------------------------------------------------------------
     def index_transcripts(
         self, convs: List[Dict[str, Any]]
-    ) -> Tuple[Dict[str, Any], List[Dict[str, Any]]]:
+    ) -> Tuple[Dict[str, Any], List[Dict[str, Any]], List[Dict[str, Any]]]:
         """
         Fast incremental indexer for transcript.jsonl across all brain/ sessions.
         Stores file mtime_ns and size in ~/.cache/antigravity-vu/transcript_index.json.
@@ -718,7 +843,12 @@ class AntigravityCollector:
                 continue
 
             entry = cached_index.get(tf_str)
-            if entry and entry.get("mtime_ns") == mtime_ns and entry.get("size") == size:
+            if (
+                entry
+                and entry.get("mtime_ns") == mtime_ns
+                and entry.get("size") == size
+                and "daily" in entry
+            ):
                 # Cache is fresh
                 new_index[tf_str] = entry
                 continue
@@ -732,6 +862,7 @@ class AntigravityCollector:
                 "cache_read_tokens": 0,
                 "output_tokens": 0,
                 "months": {},
+                "daily": {},
             }
 
             try:
@@ -756,13 +887,33 @@ class AntigravityCollector:
                         entry["output_tokens"] += out_tok
 
                         c_at = item.get("created_at") or ""
-                        month = c_at[:7] if len(c_at) >= 7 else current_month
+                        day_str = None
+                        if c_at:
+                            try:
+                                clean_c = c_at.replace("Z", "+00:00")
+                                dt_val = datetime.datetime.fromisoformat(clean_c)
+                                day_str = dt_val.astimezone().strftime("%Y-%m-%d")
+                            except Exception:
+                                pass
+                        if not day_str:
+                            try:
+                                day_str = datetime.datetime.fromtimestamp(st.st_mtime).astimezone().strftime("%Y-%m-%d")
+                            except Exception:
+                                day_str = current_month + "-01"
+
+                        month = day_str[:7] if len(day_str) >= 7 else current_month
 
                         if month not in entry["months"]:
                             entry["months"][month] = {"input": 0, "cache": 0, "output": 0}
                         entry["months"][month]["input"] += in_tok
                         entry["months"][month]["cache"] += ca_tok
                         entry["months"][month]["output"] += out_tok
+
+                        if day_str not in entry["daily"]:
+                            entry["daily"][day_str] = {"in": 0, "ca": 0, "out": 0}
+                        entry["daily"][day_str]["in"] += in_tok
+                        entry["daily"][day_str]["ca"] += ca_tok
+                        entry["daily"][day_str]["out"] += out_tok
             except Exception:
                 pass
 
@@ -835,7 +986,39 @@ class AntigravityCollector:
             p["total_formatted"] = format_tokens(p["total_tokens"])
             projects_list.append(p)
 
-        return monthly_tokens, projects_list
+        # Generate exactly 7 days of daily history in chronological order (from 6 days ago to today)
+        WEEKDAY_LABELS = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"]
+        now_local = datetime.datetime.now().astimezone()
+        today_date = now_local.date()
+        daily_history: List[Dict[str, Any]] = []
+
+        for i in range(6, -1, -1):
+            day_target = today_date - datetime.timedelta(days=i)
+            day_iso = day_target.strftime("%Y-%m-%d")
+            w_label = WEEKDAY_LABELS[day_target.weekday()]
+
+            d_in = 0
+            d_ca = 0
+            d_out = 0
+            for entry in new_index.values():
+                d_rec = entry.get("daily", {}).get(day_iso)
+                if d_rec:
+                    d_in += d_rec.get("in", 0)
+                    d_ca += d_rec.get("ca", 0)
+                    d_out += d_rec.get("out", 0)
+
+            d_total = d_in + d_ca + d_out
+            daily_history.append({
+                "date": day_iso,
+                "label": w_label,
+                "input_tokens": d_in,
+                "cache_read_tokens": d_ca,
+                "output_tokens": d_out,
+                "total_tokens": d_total,
+                "total_formatted": format_tokens(d_total),
+            })
+
+        return monthly_tokens, projects_list, daily_history
 
     # ------------------------------------------------------------------
     # Main Collect Entrypoint
@@ -868,7 +1051,7 @@ class AntigravityCollector:
         )
 
         # 5. Index transcripts for monthly & project token telemetry
-        monthly_tok, projects_list = self.index_transcripts(convs)
+        monthly_tok, projects_list, daily_history = self.index_transcripts(convs)
 
         now_iso = datetime.datetime.now(datetime.timezone.utc).astimezone().isoformat()
 
@@ -881,6 +1064,7 @@ class AntigravityCollector:
             "swarm": swarm_info,
             "monthly_tokens": monthly_tok,
             "projects": projects_list,
+            "daily_history": daily_history,
         }
 
 
@@ -899,6 +1083,51 @@ def render_progress_bar(pct: float, width: int = 24) -> str:
         color = "\033[91m"  # Red
     reset = "\033[0m"
     return f"{color}{bar}{reset} {pct:5.1f}%"
+
+
+def format_waybar_payload(data: Dict[str, Any]) -> str:
+    """Format single-line JSON payload for Waybar custom module."""
+    user = data.get("user", {})
+    primary = data.get("primary_quota", {})
+    active = data.get("active_context", {})
+    swarm = data.get("swarm", {})
+
+    ls_online = bool(user.get("ls_online", False))
+    rem_pct = float(primary.get("remaining_pct", 100.0))
+    grp = primary.get("group", "Quota")
+    reset_in = primary.get("reset_in", "--")
+    status_level = primary.get("status_level", "healthy")
+    pace = primary.get("pace_status", "normal")
+
+    if not ls_online:
+        css_class = "offline"
+    elif status_level == "critical":
+        css_class = "critical"
+    elif status_level == "warning":
+        css_class = "warning"
+    else:
+        css_class = "normal"
+
+    icon = "⚡" if pace == "fast" else "●"
+    text = f"{icon} {grp} {rem_pct:.0f}% ({reset_in})"
+
+    tooltip_lines = [
+        f"Antigravity View Usage ({grp})",
+        f"Quota: {rem_pct:.1f}% remaining (Resets in: {reset_in})",
+        f"Status: {status_level.capitalize()} | Pace: {pace.capitalize()}",
+        f"Active Model: {active.get('active_model_label', 'Unknown')}",
+        f"Context: {active.get('context_formatted', '0')} tokens",
+        f"Swarm: {swarm.get('active_count', 0)} working / {swarm.get('total_alive', 0)} total",
+    ]
+    tooltip = "\n".join(tooltip_lines)
+
+    payload = {
+        "text": text,
+        "tooltip": tooltip,
+        "class": css_class,
+        "percentage": round(rem_pct, 1),
+    }
+    return json.dumps(payload, ensure_ascii=False)
 
 
 def print_pretty_dashboard(data: Dict[str, Any]) -> None:
@@ -920,7 +1149,8 @@ def print_pretty_dashboard(data: Dict[str, Any]) -> None:
 
     # Dynamic Island Pill Preview
     dot = "🟢" if primary.get("status_level") == "healthy" else ("🟡" if primary.get("status_level") == "warning" else "🔴")
-    pill_text = f" {dot} {primary.get('group', 'Quota')} {primary.get('remaining_pct', 0.0):.0f}% ({primary.get('reset_in', '--')}) │ 🧠 {active.get('context_formatted', '0')} │ 🐝 {swarm.get('active_count', 0)}/{swarm.get('total_alive', 0)} "
+    pace_badge = f" [⚡ {primary.get('estimated_exhaust_in') or 'FAST'}]" if primary.get("pace_status") == "fast" else ""
+    pill_text = f" {dot} {primary.get('group', 'Quota')} {primary.get('remaining_pct', 0.0):.0f}% ({primary.get('reset_in', '--')}){pace_badge} │ 🧠 {active.get('context_formatted', '0')} │ 🐝 {swarm.get('active_count', 0)}/{swarm.get('total_alive', 0)} "
     print(f"\033[1;36m│\033[0m  Top Bar Pill: \033[48;5;235m\033[1;37m{pill_text}\033[0m")
     print("\033[1;36m├────────────────────────────────────────────────────────────────────────────┤\033[0m")
 
@@ -930,7 +1160,11 @@ def print_pretty_dashboard(data: Dict[str, Any]) -> None:
         print(f"\033[1;36m│\033[0m   \033[1;37m{g['name']}:\033[0m")
         for b in g.get("buckets", []):
             bar = render_progress_bar(b["remaining_pct"], 20)
-            print(f"\033[1;36m│\033[0m     • {b['label']:<8} {bar}  (Resets in: {b['reset_in']})")
+            pace_note = ""
+            if b.get("pace_status") == "fast":
+                exhaust_str = f" • esgota: {b.get('estimated_exhaust_in')}" if b.get('estimated_exhaust_in') else ""
+                pace_note = f" \033[93m[⚡ Ritmo Acelerado{exhaust_str}]\033[0m"
+            print(f"\033[1;36m│\033[0m     • {b['label']:<8} {bar}  (Resets in: {b['reset_in']}){pace_note}")
 
     # Active Session & Swarm Section
     print("\033[1;36m├────────────────────────────────────────────────────────────────────────────┤\033[0m")
@@ -949,6 +1183,11 @@ def print_pretty_dashboard(data: Dict[str, Any]) -> None:
     print("\033[1;36m├────────────────────────────────────────────────────────────────────────────┤\033[0m")
     print(f"\033[1;36m│\033[0m  \033[1;34mTELEMETRY ({monthly.get('month', '')})\033[0m")
     print(f"\033[1;36m│\033[0m   Total: \033[1;35m{monthly.get('total_formatted')}\033[0m (Input: {monthly.get('input_formatted')}, Cache: {monthly.get('cache_formatted')}, Output: {monthly.get('output_formatted')})")
+
+    daily = data.get("daily_history", [])
+    if daily:
+        daily_summary = " │ ".join([f"{d['label']}: {d['total_formatted']}" for d in daily])
+        print(f"\033[1;36m│\033[0m   7d Atividade: \033[1;33m{daily_summary}\033[0m")
 
     projects = data.get("projects", [])[:3]
     if projects:
@@ -986,6 +1225,11 @@ def main() -> None:
         type=str,
         help="Pin primary quota group (auto, argon, gemini, 3p)",
     )
+    parser.add_argument(
+        "--waybar",
+        action="store_true",
+        help="Output single-line JSON formatted for Waybar custom module",
+    )
 
     args = parser.parse_args()
     collector = AntigravityCollector()
@@ -1007,6 +1251,10 @@ def main() -> None:
 
     # Collect data
     data = collector.collect(pin_group_override=args.pin_group)
+
+    if args.waybar:
+        print(format_waybar_payload(data))
+        return
 
     # If --pretty explicitly given, print dashboard.
     # Otherwise, if --json or stdout is redirected / pipe, output JSON.

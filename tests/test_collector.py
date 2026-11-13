@@ -14,8 +14,11 @@ import unittest
 
 from backend.ag_vu_collector import (
     AntigravityCollector,
+    calculate_quota_pacing,
     calculate_status_level,
+    format_duration_friendly,
     format_tokens,
+    format_waybar_payload,
     parse_reset_in,
 )
 
@@ -351,7 +354,7 @@ class TestIncrementalTranscriptIndexer(unittest.TestCase):
             "workspace_uris": json.dumps(["file:///home/user/myproject"])
         }]
 
-        monthly, projects = self.collector.index_transcripts(mock_convs)
+        monthly, projects, daily = self.collector.index_transcripts(mock_convs)
 
         self.assertEqual(monthly["input_tokens"], 3000)
         self.assertEqual(monthly["cache_read_tokens"], 13000)
@@ -362,6 +365,183 @@ class TestIncrementalTranscriptIndexer(unittest.TestCase):
         self.assertEqual(len(projects), 1)
         self.assertEqual(projects[0]["name"], "myproject")
         self.assertEqual(projects[0]["total_tokens"], 16500)
+
+        # 7-day daily history validation
+        self.assertEqual(len(daily), 7)
+        expected_labels = {"Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"}
+        for d in daily:
+            self.assertIn("date", d)
+            self.assertIn("label", d)
+            self.assertIn(d["label"], expected_labels)
+            self.assertIn("input_tokens", d)
+            self.assertIn("cache_read_tokens", d)
+            self.assertIn("output_tokens", d)
+            self.assertIn("total_tokens", d)
+            self.assertIn("total_formatted", d)
+
+    def test_legacy_cache_invalidation_without_daily(self):
+        # Create a legacy cache entry that has mtime_ns and size but NO "daily" key
+        st = self.transcript_file.stat()
+        legacy_cache = {
+            "files": {
+                str(self.transcript_file): {
+                    "mtime_ns": st.st_mtime_ns,
+                    "size": st.st_size,
+                    "conv_id": "conv-100",
+                    "input_tokens": 100,
+                    "cache_read_tokens": 200,
+                    "output_tokens": 300,
+                    "months": {},
+                    # "daily" missing intentionally!
+                }
+            }
+        }
+        with open(self.collector.transcript_index_file, "w") as f:
+            json.dump(legacy_cache, f)
+
+        mock_convs = [{"conversation_id": "conv-100", "workspace_uris": ""}]
+        monthly, projects, daily = self.collector.index_transcripts(mock_convs)
+
+        # Must re-read file from scratch because legacy cache lacked "daily"
+        self.assertEqual(monthly["total_tokens"], 16500)
+        self.assertEqual(len(daily), 7)
+
+
+class TestPacingAndExhaustion(unittest.TestCase):
+    """Test burn rate pacing marker and exhaustion forecasting."""
+
+    def test_format_duration_friendly(self):
+        self.assertEqual(format_duration_friendly(45), "~1m")
+        self.assertEqual(format_duration_friendly(300), "~5m")
+        self.assertEqual(format_duration_friendly(3600), "~1h")
+        self.assertEqual(format_duration_friendly(3720), "~1h 2m")
+        self.assertEqual(format_duration_friendly(90000), "~1d 1h")
+
+    def test_pacing_5h_fast_with_exhaustion(self):
+        now = datetime.datetime(2026, 11, 13, 12, 0, 0, tzinfo=datetime.timezone.utc)
+        # 5h window (18000s). Reset in 3h (10800s). Elapsed: 2h (7200s = 40.0%).
+        # Expected remaining: 60.0%. Actual remaining: 20.0% (consumed: 80.0%).
+        # pace_delta: 20.0 - 60.0 = -40.0 <= -5.0 -> fast!
+        # Burn rate: 80% / 7200s = 0.01111 %/s.
+        # secs_to_exhaust: 20 / 0.01111 = 1800s (30m).
+        # 1800s < 10800s (30m < 3h) -> exhausts in ~30m!
+        res = calculate_quota_pacing("5h", 20.0, "2026-11-13T15:00:00Z", now_dt=now)
+        self.assertEqual(res["window_duration_sec"], 18000.0)
+        self.assertEqual(res["elapsed_sec"], 7200.0)
+        self.assertEqual(res["secs_to_reset"], 10800.0)
+        self.assertEqual(res["elapsed_pct"], 40.0)
+        self.assertEqual(res["expected_remaining_pct"], 60.0)
+        self.assertEqual(res["consumed_pct"], 80.0)
+        self.assertEqual(res["pace_delta_pct"], -40.0)
+        self.assertEqual(res["pace_status"], "fast")
+        self.assertEqual(res["estimated_exhaust_in"], "~30m")
+
+    def test_pacing_weekly_fast_with_exhaustion(self):
+        now = datetime.datetime(2026, 11, 13, 12, 0, 0, tzinfo=datetime.timezone.utc)
+        # Weekly window (604800s). Reset in 5d (432000s). Elapsed: 2d (172800s = 28.6%).
+        # Expected remaining: 71.4%. Actual remaining: 20.0% (consumed: 80.0%).
+        # pace_delta: 20.0 - 71.4 = -51.4 <= -5.0 -> fast!
+        # Burn rate: 80% / 172800s = 0.000463 %/s.
+        # secs_to_exhaust: 20 / 0.000463 = 43200s (12h).
+        # 43200s < 432000s (12h < 5d) -> exhausts in ~12h!
+        res = calculate_quota_pacing("weekly", 20.0, "2026-11-18T12:00:00Z", now_dt=now)
+        self.assertEqual(res["pace_status"], "fast")
+        self.assertEqual(res["estimated_exhaust_in"], "~12h")
+
+    def test_pacing_fast_already_exhausted_gives_none_estimate(self):
+        now = datetime.datetime(2026, 11, 13, 12, 0, 0, tzinfo=datetime.timezone.utc)
+        # Quota already at 0% (exhausted): pace_status is fast, but estimated_exhaust_in is None
+        res = calculate_quota_pacing("5h", 0.0, "2026-11-13T15:00:00Z", now_dt=now)
+        self.assertEqual(res["pace_status"], "fast")
+        self.assertEqual(res["remaining_pct"] if "remaining_pct" in res else res["consumed_pct"], 100.0)
+        self.assertIsNone(res["estimated_exhaust_in"])
+
+    def test_pacing_slow(self):
+        now = datetime.datetime(2026, 11, 13, 12, 0, 0, tzinfo=datetime.timezone.utc)
+        # 5h window. Reset in 2h (7200s). Elapsed: 3h (10800s = 60.0%).
+        # Expected remaining: 40.0%. Actual remaining: 80.0% (consumed 20.0%).
+        # pace_delta: 80.0 - 40.0 = +40.0 >= 5.0 -> slow!
+        res = calculate_quota_pacing("5h", 80.0, "2026-11-13T14:00:00Z", now_dt=now)
+        self.assertEqual(res["pace_status"], "slow")
+        self.assertIsNone(res["estimated_exhaust_in"])
+
+    def test_pacing_normal(self):
+        now = datetime.datetime(2026, 11, 13, 12, 0, 0, tzinfo=datetime.timezone.utc)
+        # 5h window. Reset in 2.5h (9000s). Elapsed: 2.5h (9000s = 50.0%).
+        # Expected remaining: 50.0%. Actual remaining: 49.0%.
+        # pace_delta: 49.0 - 50.0 = -1.0 (between -5 and +5) -> normal.
+        res = calculate_quota_pacing("5h", 49.0, "2026-11-13T14:30:00Z", now_dt=now)
+        self.assertEqual(res["pace_status"], "normal")
+        self.assertIsNone(res["estimated_exhaust_in"])
+
+    def test_pacing_invalid_and_unknown(self):
+        res1 = calculate_quota_pacing("invalid_window", 50.0, "2026-11-13T14:00:00Z")
+        self.assertEqual(res1["pace_status"], "unknown")
+        self.assertIsNone(res1["elapsed_pct"])
+
+        res2 = calculate_quota_pacing("weekly", 50.0, "")
+        self.assertEqual(res2["pace_status"], "unknown")
+
+        res3 = calculate_quota_pacing("weekly", 50.0, "invalid-date-string")
+        self.assertEqual(res3["pace_status"], "unknown")
+
+    def test_pacing_early_cycle_not_fast(self):
+        now = datetime.datetime(2026, 11, 13, 12, 0, 0, tzinfo=datetime.timezone.utc)
+        # Reset in 4h 58m (elapsed = 2m = 120s < 300s, elapsed_pct < 2.0%)
+        # Even if delta is large, must not trigger fast status or exhaust estimate
+        res = calculate_quota_pacing("5h", 90.0, "2026-11-13T16:58:00Z", now_dt=now)
+        self.assertEqual(res["pace_status"], "normal")
+        self.assertIsNone(res["estimated_exhaust_in"])
+
+
+class TestWaybarOutput(unittest.TestCase):
+    """Test --waybar JSON generation."""
+
+    def test_format_waybar_payload_online(self):
+        mock_data = {
+            "user": {"ls_online": True},
+            "primary_quota": {
+                "group": "Gemini 3.8",
+                "remaining_pct": 75.0,
+                "reset_in": "2d 4h",
+                "status_level": "healthy",
+                "pace_status": "normal",
+            },
+            "active_context": {
+                "active_model_label": "Gemini 3.8 Flash",
+                "context_formatted": "42k",
+            },
+            "swarm": {
+                "active_count": 2,
+                "total_alive": 5,
+            },
+        }
+        out_json = format_waybar_payload(mock_data)
+        parsed = json.loads(out_json)
+        self.assertEqual(parsed["class"], "normal")
+        self.assertEqual(parsed["percentage"], 75.0)
+        self.assertIn("Gemini 3.8", parsed["text"])
+        self.assertIn("75%", parsed["text"])
+        self.assertIn("Context: 42k tokens", parsed["tooltip"])
+
+    def test_format_waybar_payload_offline_and_warning(self):
+        mock_data = {
+            "user": {"ls_online": False},
+            "primary_quota": {
+                "group": "Gemini 4 Argon",
+                "remaining_pct": 15.0,
+                "reset_in": "5h",
+                "status_level": "critical",
+                "pace_status": "fast",
+            },
+            "active_context": {},
+            "swarm": {},
+        }
+        out_json = format_waybar_payload(mock_data)
+        parsed = json.loads(out_json)
+        self.assertEqual(parsed["class"], "offline")
+        self.assertEqual(parsed["percentage"], 15.0)
+        self.assertIn("⚡", parsed["text"])  # fast pace indicator
 
 
 class TestLiveContractValidation(unittest.TestCase):
@@ -381,6 +561,7 @@ class TestLiveContractValidation(unittest.TestCase):
             "swarm",
             "monthly_tokens",
             "projects",
+            "daily_history",
         ]
         for k in expected_keys:
             self.assertIn(k, data, f"Missing key '{k}' in collect() output")
@@ -398,6 +579,7 @@ class TestLiveContractValidation(unittest.TestCase):
         self.assertIn("remaining_pct", pq)
         self.assertIn("reset_in", pq)
         self.assertIn("status_level", pq)
+        self.assertIn("pace_status", pq)
 
         # Active context schema
         act = data["active_context"]
@@ -421,6 +603,26 @@ class TestLiveContractValidation(unittest.TestCase):
         self.assertIn("month", mt)
         self.assertIn("total_tokens", mt)
         self.assertIn("total_formatted", mt)
+
+        # Daily history schema
+        dh = data["daily_history"]
+        self.assertEqual(len(dh), 7)
+        for d in dh:
+            self.assertIn("date", d)
+            self.assertIn("label", d)
+            self.assertIn("input_tokens", d)
+            self.assertIn("cache_read_tokens", d)
+            self.assertIn("output_tokens", d)
+            self.assertIn("total_tokens", d)
+            self.assertIn("total_formatted", d)
+
+        # Waybar payload verification
+        wb_str = format_waybar_payload(data)
+        wb = json.loads(wb_str)
+        self.assertIn("text", wb)
+        self.assertIn("tooltip", wb)
+        self.assertIn("class", wb)
+        self.assertIn("percentage", wb)
 
 
 if __name__ == "__main__":
