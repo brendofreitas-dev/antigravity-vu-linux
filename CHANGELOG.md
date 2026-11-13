@@ -7,6 +7,35 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ---
 
+## [1.5.0] - 2026-11-13
+
+### Adicionado
+- **Indicador de Ritmo (*Pace Marker*) e Previsão de Esgotamento**:
+  - Marcador vertical fino de 2px nas barras de cota indicando o consumo esperado para o tempo decorrido na janela (`weekly` ou `5h`).
+  - Detecção de consumo acelerado (`pace_status: fast`) com badge âmbar e cálculo amigável do tempo estimado de esgotamento (`⚡ ~Xh`).
+- **Mini Histograma de Atividade de 7 Dias**:
+  - Gráfico compacto diário exibindo a distribuição de tokens nos últimos 7 dias na coluna direita do dashboard, com realce interativo no hover revelando data e consumo detalhado.
+- **Notificações Nativas do Sistema (`Main.notify`) com Anti-Spam**:
+  - Alertas automáticos do GNOME Shell para transições de cota crítica (<20% aviso, <10% crítico) e renovação de cota (reset para >=99.5%).
+  - Inicialização silenciosa e controle de transições com persistência em `~/.cache/antigravity-vu/notify_state.json`.
+- **Atalho de Teclado Global Configurável**:
+  - Atalho padrão `<Super><Alt>a` para alternar a exibição do Dashboard, registrado via GSettings (`org.gnome.shell.extensions.antigravity-vu`).
+- **Compatibilidade com Blur My Shell**:
+  - Detecção dinâmica de `blur-my-shell@aunetx` com aplicação da classe `.ag-blur-compat` para bordas e translucidez integradas.
+- **Suporte a Waybar (`--waybar`)**:
+  - Nova flag CLI `ag-vu --waybar` que emite JSON em linha única compatível com status bars Wayland (`text`, `tooltip`, `class`, `percentage`).
+- **Dashboard CLI (`ag-vu --pretty`)**:
+  - Indicador de ritmo acelerado e sumário dos últimos 7 dias integrados ao visualizador de terminal.
+
+### Alterado
+- **Metadados e Instalação**:
+  - `extension/metadata.json` atualizado para `version: 11`, `version-name: "1.5.0"` e `settings-schema`.
+  - `install.sh` atualizado para instalação recursiva de schemas GSettings e compilação automática (`glib-compile-schemas`).
+- **Suíte de Testes**:
+  - Suíte unitária expandida para 24/24 testes cobrindo ritmo, esgotamento, histórico diário e saída Waybar.
+
+---
+
 ## [1.4.1] - 2026-11-13
 
 ### Corrigido

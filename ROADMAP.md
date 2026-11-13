@@ -9,19 +9,19 @@ Este documento traça o planejamento estratégico e a evolução do projeto **An
 ```mermaid
 flowchart LR
     v10["v1.0.0<br/>• Dynamic Island GNOME<br/>• Quotas ConnectRPC<br/>• Swarm Tracker<br/>• CLI ag-vu"]
-    v11["v1.1.0 – v1.3.1<br/>• Unified Island & Theme<br/>• Active Model Auto Quota<br/>• System Tray Hover"]
-    v14["v1.4.0 (Atual) ✅<br/>• Dashboard 2 Colunas (720px)<br/>• Legenda de Cores 2×2<br/>• Swarm Completo sem Scroll"]
-    v15["v1.5.0 (Q1 2027)<br/>• Painel Prefs GTK4/Adw<br/>• Alertas de Cota Crítica<br/>• Gráficos Sparkline Cairo"]
+    v11["v1.1.0 – v1.4.1 ✅<br/>• Unified Island & 2-Col Layout<br/>• Active Model Auto Quota<br/>• System Tray Hover & 2×2 Legend"]
+    v15["v1.5.0 (Atual) ✅<br/>• Marcador de Ritmo & Previsão<br/>• Histograma 7d & Notificações<br/>• Atalho Global & Waybar"]
+    v16["v1.6.0 (Q2 2027)<br/>• Overlay Wayland Puro<br/>• Painel Prefs GTK4/Adw<br/>• Exportador Prometheus"]
     v20["v2.0.0 (Q3 2027)<br/>• Multi-Account Switcher<br/>• Estimador de Custos<br/>• Histórico Anual SQLite"]
 
-    v10 --> v11 --> v14 --> v15 --> v20
+    v10 --> v11 --> v15 --> v16 --> v20
 ```
 
 ---
 
 ## 📌 Versões Planejadas
 
-### [v1.0.0] — Lançamento Inicial (Atual) ✅
+### [v1.0.0] — Lançamento Inicial ✅
 - [x] Extensão GNOME Shell 45-50+ com arquitetura ESM pura.
 - [x] Integração na Top Bar ao lado do `DateMenu` nativo sem alterar relógio ou calendário.
 - [x] 3 estágios da Dynamic Island: pílula compacta (28px), expansão em hover e dashboard Glassmorphism.
@@ -35,55 +35,56 @@ flowchart LR
 
 ---
 
-### [v1.1.0] — Unified Island & Tema Adaptativo ✅ (2026-11-12)
-- [x] **Unified Dynamic Island (Date/Time + Antigravity)**: cápsula única sobre `_centerBox`, calendário nativo preservado, reversível no `disable()`.
-- [x] **Adaptive Ubuntu System Theme (Light/Dark)** com cores de acento Yaru/Adwaita.
-- [x] Fix do `PopupMenu` (colapso de altura no GNOME 50).
-
-### [v1.3.0] — Refinamento de UX & Simplificação da Dynamic Island ✅ (2026-11-12)
-- [x] **Simplificação para 2 Estágios**: remoção do hover expansivo na Top Bar para um indicador estável, limpo e direto.
-- [x] **Automação Completa da Cota Primária**: remoção dos botões manuais `📌 Fixar`; a Top Bar acompanha dinamicamente o modelo em uso na IDE.
-- [x] **Retângulo com Cantos Arredondados no Hover**: transição do formato oval para retângulo arredondado (`border-radius: 8px`), alinhado ao padrão dos botões da Top Bar do Ubuntu Yaru.
-- [x] **Legenda de Cores no Dashboard**: inclusão de componente `.ag-color-legend` com significado das cores Verde, Âmbar, Vermelho e Azul.
-- [x] **Visual Translúcido Calendar**: herança direta de `.popup-menu-content` nativo sem caixas rígidas.
+### [v1.1.0 – v1.3.1] — Unified Island, Tema Adaptativo & Refinamento de UX ✅
+- [x] **Unified Dynamic Island (Date/Time + Antigravity)**: cápsula única sobre `_centerBox`, calendário nativo preservado, 100% reversível no `disable()`.
+- [x] **Tema Adaptativo do Ubuntu (Light/Dark)**: compatibilidade com `org.gnome.desktop.interface` e cores Yaru/Adwaita.
+- [x] **Hot-Reload Dinâmico no Wayland**: carregamento modular `island.js` com cache-busting sem deslogar da sessão.
+- [x] **Detecção de Modelo Ativo Real**: vínculo dinâmico da cota primária na barra ao modelo em execução na IDE via `gen_metadata`.
+- [x] **Estilo Nativo Ubuntu System Tray**: cápsula 100% transparente em repouso e hover em retângulo suavemente arredondado (8px).
+- [x] **Simplificação para 2 Estágios**: remoção do hover expansivo na barra, garantindo estabilidade e foco.
 
 ---
 
-### [v1.4.0] — Dashboard em 2 Colunas & Grade de Legenda ✅ (2026-11-13)
-- [x] **Dashboard em 2 Colunas (720px)**: layout equilibrado estilo Ubuntu Calendar com divisão lógica de seções.
-- [x] **Coluna Esquerda (345px)**: Cotas de modelos (barras de 310px), Legenda da pílula 2×2 e Sessão Ativa.
-- [x] **Coluna Direita (335px)**: Agentes do Swarm sem corte vertical e Consumo no Mês / Top Projetos.
-- [x] **Legenda da Pílula em Grade 2×2**: pontos reais `St.Widget` alinhados e espaçados harmoniosamente.
-- [x] **Remoção de Scroll nos Agentes**: visualização direta de todos os agentes sem barras cinzentas de rolagem.
+### [v1.4.0 – v1.4.1] — Dashboard em 2 Colunas & Grade de Legenda ✅ (2026-11-13)
+- [x] **Dashboard em 2 Colunas (720px)**: layout equilibrado estilo Ubuntu Calendar Popover.
+- [x] **Coluna Esquerda (345px)**: Cotas de modelos (barras de 310px), Legenda 2×2 e Sessão Ativa com badge do modelo ativo.
+- [x] **Coluna Direita (335px)**: Agentes do Swarm completos sem corte vertical e Consumo Mensal com ranking de Top Projetos.
+- [x] **Legenda da Pílula em Grade 2×2 Alinhada**: colunas verticais estritas (`colA` e `colB`) com pontos circulares travados em 8×8px.
+- [x] **Remoção de Scroll nos Agentes**: visualização direta de todos os membros do Swarm sem barras de rolagem cinzentas.
 
 ---
 
-### [v1.5.0] — Experiência do Usuário & Alertas Nativos 🎯 (Q1 2027)
-- [ ] **Interface Gráfica de Configuração (`prefs.js`)**:
-  - Diálogo nativo em GTK4 / Libadwaita integrado ao aplicativo *Extensões* do GNOME.
-  - Seleção visual do grupo de cota fixado na pílula.
-  - Ajuste deslizante do intervalo de atualização (2s a 30s).
-- [ ] **Notificações de Cota Crítica**:
-  - Alerta nativo do sistema quando qualquer cota cair abaixo de 10% ou 5%.
-  - Notificação de aviso 30 minutos antes do reset semanal.
-- [ ] **Mini-Gráficos Sparkline em Cairo**:
-  - Renderização vetorial leve de sparkline da velocidade de tokens nos últimos 30 minutos.
-- [ ] **Atalhos de Teclado Globais**:
-  - Atalho configurável (ex: `Super + Shift + A`) para alternar a exibição da Dynamic Island ou abrir o dashboard.
+### [v1.5.0] — Inteligência de Ritmo, Notificações Nativas & Integração (Atual) ✅ (2026-11-13)
+- [x] **Indicador de Ritmo (*Pace Marker*) & Previsão de Esgotamento**:
+  - Marcador vertical fino nas barras de progresso indicando a cota esperada para o tempo decorrido da janela (semanal / 5h).
+  - Cálculo de burn rate acelerado (`pace_status: fast`) com estimativa amigável de esgotamento (`~Xh`) antes do reset.
+- [x] **Mini Histograma de Atividade 7 Dias**:
+  - Gráfico compacto de barras diárias (`daily_history`) na coluna direita com hover interativo revelando o total de tokens do dia.
+- [x] **Notificações Nativas do Sistema (`Main.notify`)**:
+  - Alertas automáticos do GNOME Shell para transições críticas de cota (< 20% aviso, < 10% crítico) e renovação de cota (reset).
+  - Persistência com anti-spam inteligente em `~/.cache/antigravity-vu/notify_state.json`.
+- [x] **Compatibilidade com Blur My Shell**:
+  - Detecção em runtime de `blur-my-shell@aunetx` aplicando translucidez e cantos arredondados contínuos.
+- [x] **Atalho de Teclado Global Configurável**:
+  - Abertura imediata do Dashboard via atalho padrão `<Super><Alt>a` gerenciado por schema GSettings (`org.gnome.shell.extensions.antigravity-vu`).
+- [x] **Suporte a Waybar (`--waybar`)**:
+  - Modo CLI para saída JSON em linha única voltado para status bars leves e compositores Wayland.
 
 ---
 
-### [v1.3.0] — Ecossistema Wayland & Extensibilidade 🌐
+### [v1.6.0] — Ecossistema Wayland & Extensibilidade 🌐 (Q2 2027)
 - [ ] **Modo Floating Overlay (Wayland Layer Shell)**:
   - Aplicação independente em Python/GTK4 ou Rust para ambientes que não utilizam GNOME Shell (Hyprland, Sway, KDE Plasma 6).
+- [ ] **Interface Gráfica de Configuração (`prefs.js`)**:
+  - Diálogo nativo em GTK4 / Libadwaita integrado ao aplicativo *Extensões* do GNOME.
 - [ ] **Exportador de Métricas para Prometheus / Grafana**:
   - Flag CLI `ag-vu --serve-metrics :9100` expondo métricas de cota e tokens no formato padrão do Prometheus.
 - [ ] **Suporte a Plugins e Custom Hooks**:
-  - Capacidade de acionar scripts personalizados ao ocorrer eventos (ex: alertar canal do Discord/Slack quando o swarm finalizar uma tarefa).
+  - Acionamento de scripts personalizados ao ocorrer eventos (ex: avisos em Discord/Slack).
 
 ---
 
-### [v2.0.0] — Inteligência Financeira & Gestão Avançada 🚀
+### [v2.0.0] — Inteligência Financeira & Gestão Avançada 🚀 (Q3 2027)
 - [ ] **Multi-Conta & Troca Rápida de Perfil**:
   - Suporte a múltiplos perfis de login do Google Cloud / Antigravity com comutação via menu.
 - [ ] **Estimativa Financeira e Economia de Prompt Cache**:

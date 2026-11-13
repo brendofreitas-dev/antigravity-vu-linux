@@ -32,7 +32,12 @@
   - **0.0% de CPU** quando ocioso: sem loops de redesenho no compositor.
   - Animações aceleradas por hardware via Clutter (`actor.ease`).
   - Execução 100% assíncrona em background via `Gio.Subprocess` (sem engasgos na interface do GNOME).
-- 🛠️ **CLI Independente (`ag-vu`)**: Utilitário de linha de comando incluído com saída JSON estruturada, visualização formatada em tabela para terminal e modo de monitoramento contínuo (`--watch`).
+- 📈 **Marcador de Ritmo (*Pace Marker*) & Previsão de Esgotamento**: Marcador vertical nas barras de progresso comparando o consumo real com o tempo decorrido da janela (semanal / 5h), com estimativa antecipada de esgotamento (`⚡ ~Xh`).
+- 📊 **Mini Histograma de 7 Dias**: Gráfico diário interativo integrado à coluna direita do dashboard com hover mostrando o tráfego detalhado de cada dia.
+- 🔔 **Notificações Nativas do GNOME**: Avisos automáticos no desktop para transições críticas (< 20%, < 10%) e renovações de cota, com anti-spam inteligente persistido em cache.
+- ⌨️ **Atalho de Teclado Global (`Super + Alt + A`)**: Abertura instantânea do Dashboard em qualquer lugar da área de trabalho, configurável via GSettings.
+- 🌐 **Compatibilidade com Waybar & Blur My Shell**: Flag `--waybar` para barras Wayland e adaptação visual automática com a extensão `blur-my-shell`.
+- 🛠️ **CLI Independente (`ag-vu`)**: Utilitário de linha de comando incluído com saída JSON estruturada, modo `--waybar`, visualização formatada em tabela para terminal (`--pretty`) e monitoramento contínuo (`--watch`).
 
 ---
 
@@ -93,7 +98,13 @@ ag-vu --json
 
 # Fixar um grupo de quotas específico na pílula fechada (auto, argon, gemini, 3p)
 ag-vu --pin-group argon
+
+# Saída em linha única para Waybar e status bars Wayland
+ag-vu --waybar
 ```
+
+### ⌨️ Atalho de Teclado
+- **`Super + Alt + A`**: Abre e fecha instantaneamente o Dashboard da Dynamic Island.
 
 ### Exemplo de Saída (`ag-vu --pretty`):
 

@@ -229,9 +229,24 @@ O coletor emite na saída padrão um JSON estruturado de acordo com o esquema:
           "window": "weekly | 5h",
           "remaining_pct": 31.4,
           "reset_time": "ISO-8601",
-          "reset_in": "3d 5h"
+          "reset_in": "3d 5h",
+          "expected_remaining_pct": 52.8,
+          "pace_delta_pct": -21.4,
+          "pace_status": "fast | normal | slow",
+          "estimated_exhaust_in": "~11h 7m"
         }
       ]
+    }
+  ],
+  "daily_history": [
+    {
+      "date": "2026-11-13",
+      "label": "Sex",
+      "input_tokens": 1200000,
+      "cache_read_tokens": 6800000,
+      "output_tokens": 140000,
+      "total_tokens": 8140000,
+      "total_formatted": "8.14M"
     }
   ],
   "active_context": {
