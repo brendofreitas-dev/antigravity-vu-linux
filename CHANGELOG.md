@@ -7,6 +7,19 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ---
 
+## [1.5.1] - 2026-11-13
+
+### Corrigido
+- **Sobrevivência do Indicador e Polling após Bloqueio de Tela / Reativação**:
+  - Corrigido o bug onde o indicador desaparecia da Top Bar e o polling de 5s parava após ciclos de bloqueio e desbloqueio de tela (`disable()` seguido de `enable()`).
+  - **Importação Determinística de Módulo**: Substituída a query string volátil `?t=${Date.now()}` por `?v=${sec}_${usec}_${size}` baseada nas propriedades de disco (`mtime` e tamanho de `island.js`). Durante ciclos de tela bloqueada sem alterações de arquivo, o GJS reutiliza o módulo em 0ms sem reavaliar scripts ou recriar tipos.
+  - **Resolução Dinâmica de GType**: Implementada a função `resolveUniqueGTypeName` para evitar exceções de `Type name AntigravityUnifiedIndicator is already registered` durante hot-reloads na mesma sessão.
+  - **Idempotência no Desmonte**: Guard `_destroyed` adicionado em `destroy()` para garantir desmonte seguro e idempotente, desconexão de `open-state-changed` do menu e proteção em callbacks assíncronos (`GLib.SOURCE_REMOVE`).
+- **Metadados**:
+  - `extension/metadata.json` atualizado para `version: 12` e `version-name: "1.5.1"`.
+
+---
+
 ## [1.5.0] - 2026-11-13
 
 ### Adicionado

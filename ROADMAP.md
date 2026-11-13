@@ -10,7 +10,7 @@ Este documento traça o planejamento estratégico e a evolução do projeto **An
 flowchart LR
     v10["v1.0.0<br/>• Dynamic Island GNOME<br/>• Quotas ConnectRPC<br/>• Swarm Tracker<br/>• CLI ag-vu"]
     v11["v1.1.0 – v1.4.1 ✅<br/>• Unified Island & 2-Col Layout<br/>• Active Model Auto Quota<br/>• System Tray Hover & 2×2 Legend"]
-    v15["v1.5.0 (Atual) ✅<br/>• Marcador de Ritmo & Previsão<br/>• Histograma 7d & Notificações<br/>• Atalho Global & Waybar"]
+    v15["v1.5.0 – v1.5.1 (Atual) ✅<br/>• Marcador de Ritmo & Previsão<br/>• Histograma 7d & Notificações<br/>• Ciclo Resiliente & GType Fix"]
     v16["v1.6.0 (Q2 2027)<br/>• Overlay Wayland Puro<br/>• Painel Prefs GTK4/Adw<br/>• Exportador Prometheus"]
     v20["v2.0.0 (Q3 2027)<br/>• Multi-Account Switcher<br/>• Estimador de Custos<br/>• Histórico Anual SQLite"]
 
@@ -54,7 +54,8 @@ flowchart LR
 
 ---
 
-### [v1.5.0] — Inteligência de Ritmo, Notificações Nativas & Integração (Atual) ✅ (2026-11-13)
+### [v1.5.0 – v1.5.1] — Inteligência de Ritmo, Notificações Nativas & Resiliência (Atual) ✅ (2026-11-13)
+- [x] **Sobrevivência do Indicador após Bloqueio de Tela (v1.5.1)**: importação determinística de módulo baseada em `mtime`/tamanho de arquivo, reutilização em 0ms no desbloqueio e resolução dinâmica de nomes GObject (`resolveUniqueGTypeName`) evitando colisões de classes.
 - [x] **Indicador de Ritmo (*Pace Marker*) & Previsão de Esgotamento**:
   - Marcador vertical fino nas barras de progresso indicando a cota esperada para o tempo decorrido da janela (semanal / 5h).
   - Cálculo de burn rate acelerado (`pace_status: fast`) com estimativa amigável de esgotamento (`~Xh`) antes do reset.
