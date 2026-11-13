@@ -680,44 +680,71 @@ export const AntigravityIndicator = GObject.registerClass({
                 leftCol.add_child(groupCard);
             }
 
-            // ================= LEFT COLUMN: 2. DISCRETE 2x2 COLOR LEGEND =================
-            const legendCard = createVBox('ag-color-legend', 4);
+            // ================= LEFT COLUMN: 2. DISCRETE 2-COLUMN COLOR LEGEND =================
+            const legendCard = createVBox('ag-color-legend');
 
-            const row1 = createHBox('ag-legend-row', 10);
-            const cell1 = createHBox('ag-legend-cell', 6);
-            cell1.x_expand = true;
-            const dot1 = new St.Widget({ style_class: 'ag-legend-dot ag-dot-healthy' });
-            const lbl1 = new St.Label({ text: '≥50% Normal', style_class: 'ag-legend-text' });
-            cell1.add_child(dot1);
-            cell1.add_child(lbl1);
-            row1.add_child(cell1);
+            const legendCols = createHBox('ag-legend-cols', 12);
+            legendCols.x_expand = true;
 
-            const cell2 = createHBox('ag-legend-cell', 6);
-            cell2.x_expand = true;
-            const dot2 = new St.Widget({ style_class: 'ag-legend-dot ag-dot-warning' });
-            const lbl2 = new St.Label({ text: '20–49% Atenção', style_class: 'ag-legend-text' });
-            cell2.add_child(dot2);
-            cell2.add_child(lbl2);
-            row1.add_child(cell2);
-            legendCard.add_child(row1);
+            const colA = createVBox('ag-legend-col', 5);
+            colA.x_expand = true;
 
-            const row2 = createHBox('ag-legend-row', 10);
-            const cell3 = createHBox('ag-legend-cell', 6);
-            cell3.x_expand = true;
-            const dot3 = new St.Widget({ style_class: 'ag-legend-dot ag-dot-critical' });
-            const lbl3 = new St.Label({ text: '<20% Crítico', style_class: 'ag-legend-text' });
-            cell3.add_child(dot3);
-            cell3.add_child(lbl3);
-            row2.add_child(cell3);
+            const colB = createVBox('ag-legend-col', 5);
+            colB.x_expand = true;
 
-            const cell4 = createHBox('ag-legend-cell', 6);
-            cell4.x_expand = true;
-            const dot4 = new St.Widget({ style_class: 'ag-legend-dot ag-dot-working' });
-            const lbl4 = new St.Label({ text: 'Agente Ativo', style_class: 'ag-legend-text' });
-            cell4.add_child(dot4);
-            cell4.add_child(lbl4);
-            row2.add_child(cell4);
-            legendCard.add_child(row2);
+            const itemsA = [
+                { text: '≥50% Normal', dotClass: 'ag-dot-healthy' },
+                { text: '<20% Crítico', dotClass: 'ag-dot-critical' },
+            ];
+
+            const itemsB = [
+                { text: '20–49% Atenção', dotClass: 'ag-dot-warning' },
+                { text: 'Agente Ativo', dotClass: 'ag-dot-working' },
+            ];
+
+            for (const item of itemsA) {
+                const cell = createHBox('ag-legend-cell', 6);
+                const dot = new St.Widget({
+                    style_class: `ag-legend-dot ${item.dotClass}`,
+                    width: 8,
+                    height: 8,
+                    x_expand: false,
+                    y_expand: false,
+                    y_align: Clutter.ActorAlign.CENTER,
+                });
+                const lbl = new St.Label({
+                    text: item.text,
+                    style_class: 'ag-legend-text',
+                    y_align: Clutter.ActorAlign.CENTER,
+                });
+                cell.add_child(dot);
+                cell.add_child(lbl);
+                colA.add_child(cell);
+            }
+
+            for (const item of itemsB) {
+                const cell = createHBox('ag-legend-cell', 6);
+                const dot = new St.Widget({
+                    style_class: `ag-legend-dot ${item.dotClass}`,
+                    width: 8,
+                    height: 8,
+                    x_expand: false,
+                    y_expand: false,
+                    y_align: Clutter.ActorAlign.CENTER,
+                });
+                const lbl = new St.Label({
+                    text: item.text,
+                    style_class: 'ag-legend-text',
+                    y_align: Clutter.ActorAlign.CENTER,
+                });
+                cell.add_child(dot);
+                cell.add_child(lbl);
+                colB.add_child(cell);
+            }
+
+            legendCols.add_child(colA);
+            legendCols.add_child(colB);
+            legendCard.add_child(legendCols);
 
             leftCol.add_child(legendCard);
         }
@@ -914,7 +941,7 @@ export const AntigravityIndicator = GObject.registerClass({
         // ================= 3. FOOTER =================
         const now = new Date();
         const timeStr = now.toLocaleTimeString();
-        const verName = this._extension?.metadata?.['version-name'] || '1.4.0';
+        const verName = this._extension?.metadata?.['version-name'] || '1.4.1';
         const footerLabel = new St.Label({
             text: `Última atualização: ${timeStr} • Antigravity vU Linux v${verName}`,
             style_class: 'ag-footer-text',

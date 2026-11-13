@@ -464,7 +464,7 @@
     opacity: 0.90;
 }
 
-/* Discrete Color Legend (2x2 Grid) */
+/* Discrete Color Legend (2-Column Aligned Grid) */
 .ag-color-legend {
     padding: 7px 10px;
     margin-top: 4px;
@@ -479,8 +479,12 @@
     border: 1px solid rgba(0, 0, 0, 0.05);
 }
 
-.ag-legend-row {
-    spacing: 10px;
+.ag-legend-cols {
+    spacing: 12px;
+}
+
+.ag-legend-col {
+    spacing: 5px;
 }
 
 .ag-legend-cell {
@@ -488,9 +492,13 @@
 }
 
 .ag-legend-dot {
-    width: 7px;
-    height: 7px;
-    border-radius: 3.5px;
+    width: 8px;
+    height: 8px;
+    min-width: 8px;
+    min-height: 8px;
+    max-width: 8px;
+    max-height: 8px;
+    border-radius: 4px;
     y-align: center;
 }
 
