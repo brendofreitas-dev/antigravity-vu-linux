@@ -7,6 +7,17 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ---
 
+## [1.4.1] - 2026-11-13
+
+### Corrigido
+- **Alinhamento e formato da legenda de cores (`.ag-color-legend`)**:
+  - Reorganizada a grade interna em duas colunas verticais estritas (`colA` e `colB`) com expansão horizontal uniforme, alinhando com precisão os itens de ambas as colunas no eixo horizontal.
+  - Dimensões dos pontos indicadores travadas em 8×8px (`x_expand: false`, `y_expand: false`, `y_align: CENTER` e restrições rígidas no CSS), eliminando a distorção vertical e garantindo formato circular perfeito.
+- **Metadados**:
+  - `extension/metadata.json` atualizado para `version: 10` e `version-name: "1.4.1"`.
+
+---
+
 ## [1.4.0] - 2026-11-13
 
 ### Adicionado
