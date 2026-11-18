@@ -80,6 +80,7 @@ O Antigravity executa em segundo plano o daemon `language_server`. As informaç�
   - Timeout estrito de 1.5s para evitar congelamento em caso de shutdown do processo.
 - **Cache de Quotas**: Se a chamada for bem-sucedida, os dados são salvos em `~/.cache/antigravity-vu/last_quota.json`. Se o servidor estiver temporariamente fechado, o coletor retorna os dados em cache com `ls_online: false`.
 - **Parser Dinâmico de Grupos & Plano Unificado (v1.5.2)**: Em `transform_quota_groups`, o coletor extrai dinamicamente a lista `rpc_models` das descrições do RPC prefixadas por `"Models within this group:"` (compactando `"Orchestrator (Carbon), Orchestrator (Argon)"` para `"Orchestrator (Carbon/Argon)"`). Quando o modelo ativo pertence a `argon` mas o payload do novo plano Google possui apenas os 2 grupos unificados (`gemini` e `3p`), o coletor resolve automaticamente `argon -> gemini` (`Gemini 4 (Carbon / Argon / Hydrogen) & 3.8`).
+- **Descoberta Automática de Assinatura & Modelos Futuros (v1.5.3)**: Em `fetch_live_quota_and_user` e `collect()`, o coletor extrai `tier`, `teams_tier` (`GetUserStatus`) e gera `subscription_signature` determinística, além da lista consolidada `available_models`. Em `transform_quota_groups`, compara `active_model_label` (sem sufixos de nível) contra `rpc_models` para vincular automaticamente o grupo ativo, mantém descrição concisa `"Gemini 4 Argon (Weekly WTU Quota)"` para planos Pro pagos quando `argon` vem sem `rpc_models`, e usa `_derive_short_pill_label` como fallback genérico para gerar rótulos curtos na Top Bar até para modelos inéditos/futuros (ex.: `Gemini 5 Xenon (High)` → `5 Xenon`).
 
 ### 3.2. Extração de Swarm, Modelo Ativo e Sessões (`conversation_summaries.db` & `gen_metadata`)
 O status dos agentes e do projeto atual é lido diretamente do banco SQLite central do Antigravity:
@@ -92,7 +93,7 @@ O status dos agentes e do projeto atual é lido diretamente do banco SQLite cent
   - `workspace_uris`: Identificação do projeto ativo (ex: `file:///home/.../antigravity-vU-linux`).
 - **Detecção do Modelo Ativo (`detect_active_model`)**: Inspeciona o campo protobuf 21 em `gen_metadata` de `~/.gemini/antigravity/conversations/<id>.db` (com fallback em `antigravity_state.pbtxt`) usando o regex atualizado `rb"\xaa\x01([\x01-\x7f])((?:Gemini|Claude|GPT-|Orchestrator)[A-Za-z0-9 ._()-]{3,45})"` e a classificação unificada `_classify_model_group` (`3p`, `argon`, `gemini`).
 - **Topologia do Swarm (8 Agentes)**:
-  - `coordinator` — **Orchestrator (Carbon)** (`gemini-pro-orchestrator`)
+  - `coordinator` — **Orchestrator (Argon)** (`gemini-pro-orchestrator-g1-pro`)
   - `gnome-dev`, `explorer`, `verifier` — **Gemini 4 Hydrogen (High)** (`gemini-4-hydrogen-high`)
   - `researcher`, `docs-agent` — **Gemini 4 Hydrogen (Medium)** (`gemini-4-hydrogen-medium`)
   - `git-release`, `monitor` — **Gemini 3.8 Flash (High)** (`gemini-3.8-flash-high`)
@@ -152,7 +153,8 @@ Main.panel.addToStatusArea(this.uuid, this._indicator, 1, 'center');
 - **Hot-reload & Ciclo de Vida Resiliente (v1.5.1)**: `extension.js` atua como carregador com importação determinística (`file://${islandPath}?v=${mtime}_${size}`). Durante ciclos normais de bloqueio/desbloqueio de tela, o GJS reutiliza o módulo já carregado em 0ms. Em caso de edição em disco, a nova versão é carregada gerando nomes de GType dinâmicos e únicos (`resolveUniqueGTypeName`), evitando colisões de classes GObject.
 - **Regra de tema**: `prefer-light` → Light; `prefer-dark` → Dark; `gtk-theme` (`-dark`) só quando `color-scheme` = `default`. Também escuta `St.ThemeContext` `changed`. Paleta Yaru neutra (Dark `#36363a`/cards `#2a2a2e`; Light `#ffffff`/cards `#f4f4f6`).
 - **Estilo System Tray Nativo (v1.2.2)**: Em repouso, a cápsula unificada é 100% transparente no painel. Ao passar o mouse, adota o realce nativo do Ubuntu Yaru (`box-shadow: inset 0 0 0 100px rgba(255, 255, 255, 0.17)` com `border: 3px solid transparent`), sem sombras cinzas externas ou bordas estáticas.
-- **Rótulos Compactos & Quebra de Linha Segura (v1.5.2)**: A pílula na Top Bar mapeia os modelos ativos para rótulos curtos (`Orch Carbon`, `Orch Argon`, `4 Carbon`, `4 Hydrogen`, `4 Argon`, `Gemini 3.8`, `Claude/GPT`). No dashboard, `.ag-group-desc` usa `Pango.WrapMode.WORD_CHAR` (`ellipsize: NONE`, `max-width: 320px`) para acomodar listas multi-modelo sem estourar a coluna esquerda de 345px.
+- **Rótulos Compactos & Quebra de Linha Segura (v1.5.2–v1.5.3)**: A pílula na Top Bar mapeia os modelos ativos para rótulos curtos (`Orch Carbon`, `Orch Argon`, `4 Carbon`, `4 Hydrogen`, `4 Argon`, `Gemini 3.8`, `Claude/GPT`) e preserva rótulos compactos dinâmicos do backend para modelos futuros. No dashboard, `formatDisplayGroupName` respeita títulos sintetizados pelo backend e `.ag-group-desc` usa `Pango.WrapMode.WORD_CHAR` (`ellipsize: NONE`, `max-width: 320px`) para acomodar listas multi-modelo sem estourar a coluna esquerda de 345px.
+- **Reconciliação Silenciosa de Notificações (v1.5.3)**: Em `_checkNotifications(data)`, ao detectar mudança em `user.subscription_signature` (ou `tier`), a extensão reinicializa silenciosamente `_notifyInitialized = false` e `_notifyState = {}` para recalcular a linha de base do novo plano sem disparar alertas falsos.
 
 ### 4.3. Os Dois Estágios da Dynamic Island (v1.3.0)
 
@@ -209,7 +211,17 @@ O coletor emite na saída padrão um JSON estruturado de acordo com o esquema:
   "timestamp": "ISO-8601 String",
   "user": {
     "name": "Nome do Desenvolvedor",
-    "tier": "Pro | Free | Enterprise",
+    "tier": "Pro | Ultra | Free | Teams",
+    "teams_tier": "TEAMS_TIER_PRO",
+    "subscription_signature": "Pro:TEAMS_TIER_PRO:gemini|3p|argon",
+    "available_models": [
+      "Gemini 4 Hydrogen",
+      "Gemini 3.8 Flash",
+      "Claude Opus 5.5",
+      "Claude Sonnet 5.5",
+      "GPT-OSS 120B",
+      "Gemini 4 Argon"
+    ],
     "ls_online": true
   },
   "primary_quota": {

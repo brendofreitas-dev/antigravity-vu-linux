@@ -6,7 +6,7 @@
 ## Topologia de agentes
 | Agente | Responsabilidade | Modelo |
 | :--- | :--- | :--- |
-| `coordinator` | Planejamento e interação com o usuário | Orchestrator (Carbon) (`gemini-pro-orchestrator`) |
+| `coordinator` | Planejamento e interação com o usuário | Orchestrator (Argon) (`gemini-pro-orchestrator-g1-pro`) |
 | `gnome-dev` | `extension/island.js`, `extension/extension.js`, `extension/stylesheet.css`, `extension/metadata.json`, `extension/schemas/*`, `install.sh` | Gemini 4 Hydrogen (High) (`gemini-4-hydrogen-high`) |
 | `explorer` | `backend/ag_vu_collector.py`, `tests/test_collector.py` | Gemini 4 Hydrogen (High) (`gemini-4-hydrogen-high`) |
 | `verifier` | Testes, auditoria de código e documentação, validação em runtime | Gemini 4 Hydrogen (High) (`gemini-4-hydrogen-high`) |

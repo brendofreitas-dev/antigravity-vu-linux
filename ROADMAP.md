@@ -10,7 +10,7 @@ Este documento traça o planejamento estratégico e a evolução do projeto **An
 flowchart LR
     v10["v1.0.0<br/>• Dynamic Island GNOME<br/>• Quotas ConnectRPC<br/>• Swarm Tracker<br/>• CLI ag-vu"]
     v11["v1.1.0 – v1.4.1 ✅<br/>• Unified Island & 2-Col Layout<br/>• Active Model Auto Quota<br/>• System Tray Hover & 2×2 Legend"]
-    v15["v1.5.0 – v1.5.2 (Atual) ✅<br/>• Pace Marker & Histograma 7d<br/>• Carbon, Orchestrator & Claude 4.6<br/>• Ciclo Resiliente & GType Fix"]
+    v15["v1.5.0 – v1.5.3 (Atual) ✅<br/>• Pace Marker & Histograma 7d<br/>• Assinatura & Modelos Automáticos<br/>• Ciclo Resiliente & GType Fix"]
     v16["v1.6.0 (Q2 2027)<br/>• Overlay Wayland Puro<br/>• Painel Prefs GTK4/Adw<br/>• Exportador Prometheus"]
     v20["v2.0.0 (Q3 2027)<br/>• Multi-Account Switcher<br/>• Estimador de Custos<br/>• Histórico Anual SQLite"]
 
@@ -54,7 +54,8 @@ flowchart LR
 
 ---
 
-### [v1.5.0 – v1.5.2] — Inteligência de Ritmo, Novos Modelos & Resiliência (Atual) ✅ (2026-11-18)
+### [v1.5.0 – v1.5.3] — Inteligência de Ritmo, Descoberta Automática & Resiliência (Atual) ✅ (2026-11-18)
+- [x] **Descoberta 100% Automática de Assinatura, Grupos Dinâmicos & Modelos Futuros (v1.5.3)**: detecção de plano via `GetUserStatus` (`subscription_signature`, `available_models`), síntese dinâmica de grupos do `RetrieveUserQuotaSummary` com vínculo via `rpc_models`, fallback genérico `_derive_short_pill_label` para rótulos curtos na Top Bar e reconciliação silenciosa de notificações ao trocar de plano.
 - [x] **Suporte às Novas Famílias de Modelos do Plano Google (v1.5.2)**: detecção de `Gemini 4 Carbon`, `Orchestrator (Carbon/Argon)` e `Claude Opus/Sonnet 4.6` via `gen_metadata`, parser dinâmico de grupos do RPC, resolução unificada `argon -> gemini` no plano de 2 grupos e rótulos curtos na Top Bar (`Orch Carbon`, `4 Carbon`, etc.).
 - [x] **Sobrevivência do Indicador após Bloqueio de Tela (v1.5.1)**: importação determinística de módulo baseada em `mtime`/tamanho de arquivo, reutilização em 0ms no desbloqueio e resolução dinâmica de nomes GObject (`resolveUniqueGTypeName`) evitando colisões de classes.
 - [x] **Indicador de Ritmo (*Pace Marker*) & Previsão de Esgotamento**:

@@ -7,6 +7,26 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ---
 
+## [1.5.3] - 2026-11-18
+
+### Adicionado
+- **Descoberta 100% Automática de Assinatura e Cotas (`GetUserStatus` + `RetrieveUserQuotaSummary`)**:
+  - Extração de `tier`, `teams_tier` e geração determinística de `subscription_signature` em `user` (`backend/ag_vu_collector.py`), além da lista consolidada `available_models` com todos os modelos ativos no plano.
+  - Parsing dinâmico de grupos/modelos retornados pelo `RetrieveUserQuotaSummary` com síntese automática de títulos, vínculo automático do modelo ativo via `rpc_models` e helper genérico `_derive_short_pill_label` para gerar rótulos curtos na Top Bar mesmo para modelos inéditos/futuros (ex.: `Gemini 5 Xenon (High)` → `5 Xenon`).
+- **Reconciliação Silenciosa de Notificações na Troca de Assinatura (`extension/island.js`)**:
+  - `_checkNotifications(data)` detecta alterações em `subscription_signature` / `tier` e reinicializa silenciosamente a linha de base de notificações, evitando falsos alertas ao trocar de plano.
+
+### Alterado
+- **Tratamento Conciso do Grupo Argon em Planos Pro Pagos**:
+  - Quando `argon` vem sem `rpc_models` (descrição longa em prosa do plano Pro), o coletor mantém a descrição concisa `"Gemini 4 Argon (Weekly WTU Quota)"` e `models: ["Gemini 4 Argon"]`, evitando poluição visual no card.
+- **UI Dinâmica, Metadados, Testes e Topologia**:
+  - `formatDisplayGroupName` e `formatShortGroupName` em `extension/island.js` preservam títulos sintetizados e rótulos compactos dinâmicos do backend.
+  - `extension/metadata.json` atualizado para `version: 14` e `version-name: "1.5.3"`.
+  - Suíte unitária ampliada para **27/27 testes aprovados** (adicionado `test_automatic_subscription_switching_and_future_model_discovery`).
+  - `@coordinator` atualizado para **Orchestrator (Argon)** (`gemini-pro-orchestrator-g1-pro`) em `AGENTS.md` e `docs/ARCHITECTURE.md`.
+
+---
+
 ## [1.5.2] - 2026-11-18
 
 ### Adicionado
