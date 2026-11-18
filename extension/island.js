@@ -11,6 +11,7 @@ import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 import GObject from 'gi://GObject';
 import Meta from 'gi://Meta';
+import Pango from 'gi://Pango';
 import Shell from 'gi://Shell';
 import St from 'gi://St';
 
@@ -93,7 +94,15 @@ function createHBox(styleClass = null, spacing = 0) {
 function formatShortGroupName(groupName, groupId, activeModel = null) {
     if (!groupName && !groupId) return '⚡';
     const raw = (groupName || '').replace(/\u00a0/g, ' ').trim();
-    if (raw === '4 Hydrogen' || raw === 'Gemini 3.8' || raw === '4 Argon' || raw === 'Claude/GPT') {
+    if (
+        raw === '4 Carbon' ||
+        raw === 'Orch Carbon' ||
+        raw === 'Orch Argon' ||
+        raw === '4 Hydrogen' ||
+        raw === 'Gemini 3.8' ||
+        raw === '4 Argon' ||
+        raw === 'Claude/GPT'
+    ) {
         return raw;
     }
 
@@ -101,6 +110,15 @@ function formatShortGroupName(groupName, groupId, activeModel = null) {
     const gname = raw.toLowerCase();
     const am = (activeModel || '').toLowerCase();
 
+    if (am.includes('orchestrator') && am.includes('argon')) {
+        return 'Orch Argon';
+    }
+    if (am.includes('orchestrator')) {
+        return 'Orch Carbon';
+    }
+    if (am.includes('carbon')) {
+        return '4 Carbon';
+    }
     if (am.includes('hydrogen')) {
         return '4 Hydrogen';
     }
@@ -114,6 +132,15 @@ function formatShortGroupName(groupName, groupId, activeModel = null) {
         return 'Claude/GPT';
     }
 
+    if (gname.includes('orch carbon') || (gname.includes('orchestrator') && gname.includes('carbon'))) {
+        return 'Orch Carbon';
+    }
+    if (gname.includes('orch argon') || (gname.includes('orchestrator') && gname.includes('argon'))) {
+        return 'Orch Argon';
+    }
+    if (gname.includes('carbon')) {
+        return '4 Carbon';
+    }
     if (gid === 'hydrogen' || (gname.includes('hydrogen') && !gname.includes('3.8') && !gname.includes('flash'))) {
         return '4 Hydrogen';
     }
@@ -141,17 +168,24 @@ function formatShortGroupName(groupName, groupId, activeModel = null) {
 function formatDisplayGroupName(group) {
     const gid = (group.id || '').toLowerCase();
     const gname = (group.name || '').replace(/\u00a0/g, ' ').toLowerCase();
+    const gdesc = (group.description || '').toLowerCase();
 
-    if (gid === 'hydrogen' || (gname.includes('hydrogen') && !gname.includes('gemini 3.8') && !gname.includes('flash'))) {
+    if (gid === 'hydrogen' || (gname.includes('hydrogen') && !gname.includes('gemini 3.8') && !gname.includes('flash') && !gname.includes('carbon'))) {
         return 'Gemini 4 Hydrogen';
     }
-    if (gid === 'gemini' || gname.includes('gemini models') || gname.includes('gemini 3.8') || gname.includes('hydrogen')) {
+    if (gid === 'gemini' || gname.includes('gemini models') || gname.includes('gemini 3.8') || gname.includes('hydrogen') || gname.includes('carbon')) {
+        if (gname.includes('carbon') || gdesc.includes('carbon')) {
+            return 'Gemini 4 (Carbon / Argon / Hydrogen) & 3.8';
+        }
         return 'Gemini 3.8 Flash & 4 Hydrogen';
     }
     if (gid === 'argon' || gname.includes('argon')) {
         return 'Gemini 4 Argon';
     }
     if (gid === '3p' || gname.includes('claude') || gname.includes('gpt')) {
+        if (gdesc.includes('4.6')) {
+            return 'Claude 4.6 & GPT (Opus / Sonnet / GPT)';
+        }
         return 'Claude & GPT (Opus / Sonnet / GPT)';
     }
     return group.name;
@@ -884,6 +918,9 @@ export const AntigravityIndicator = GObject.registerClass({
                         text: group.description,
                         style_class: 'ag-group-desc',
                     });
+                    descLabel.clutter_text.line_wrap = true;
+                    descLabel.clutter_text.line_wrap_mode = Pango.WrapMode.WORD_CHAR;
+                    descLabel.clutter_text.ellipsize = Pango.EllipsizeMode.NONE;
                     groupCard.add_child(descLabel);
                 }
 
@@ -1313,7 +1350,7 @@ export const AntigravityIndicator = GObject.registerClass({
         // ================= 3. FOOTER =================
         const now = new Date();
         const timeStr = now.toLocaleTimeString();
-        const verName = this._extension?.metadata?.['version-name'] || '1.5.1';
+        const verName = this._extension?.metadata?.['version-name'] || '1.5.2';
         const footerLabel = new St.Label({
             text: `Última atualização: ${timeStr} • Antigravity vU Linux v${verName}`,
             style_class: 'ag-footer-text',

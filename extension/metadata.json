@@ -12,6 +12,6 @@
   ],
   "url": "https://github.com/brendofreitas-dev/antigravity-vu-linux",
   "settings-schema": "org.gnome.shell.extensions.antigravity-vu",
-  "version": 12,
-  "version-name": "1.5.1"
+  "version": 13,
+  "version-name": "1.5.2"
 }
