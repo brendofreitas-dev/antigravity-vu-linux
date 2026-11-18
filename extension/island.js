@@ -141,6 +141,9 @@ function formatShortGroupName(groupName, groupId, activeModel = null) {
     if (gname.includes('carbon')) {
         return '4 Carbon';
     }
+    if (/^\d+\s+[A-Za-z0-9.]+$/.test(raw)) {
+        return raw;
+    }
     if (gid === 'hydrogen' || (gname.includes('hydrogen') && !gname.includes('3.8') && !gname.includes('flash'))) {
         return '4 Hydrogen';
     }
@@ -157,6 +160,10 @@ function formatShortGroupName(groupName, groupId, activeModel = null) {
         return 'Claude/GPT';
     }
 
+    if (raw && raw.length <= 14 && !gname.includes('models')) {
+        return raw;
+    }
+
     return raw
         .replace(/gemini/i, '')
         .replace(/models/i, '')
@@ -166,8 +173,17 @@ function formatShortGroupName(groupName, groupId, activeModel = null) {
 }
 
 function formatDisplayGroupName(group) {
+    const rawName = (group.name || '').replace(/\u00a0/g, ' ').trim();
+    if (
+        rawName &&
+        rawName !== 'Gemini Models' &&
+        rawName !== 'Claude and GPT models'
+    ) {
+        return rawName;
+    }
+
     const gid = (group.id || '').toLowerCase();
-    const gname = (group.name || '').replace(/\u00a0/g, ' ').toLowerCase();
+    const gname = rawName.toLowerCase();
     const gdesc = (group.description || '').toLowerCase();
 
     if (gid === 'hydrogen' || (gname.includes('hydrogen') && !gname.includes('gemini 3.8') && !gname.includes('flash') && !gname.includes('carbon'))) {
@@ -291,6 +307,7 @@ export const AntigravityIndicator = GObject.registerClass({
         // Notification state and anti-spam cache
         this._notifyState = loadNotifyState();
         this._notifyInitialized = false;
+        this._lastSubscriptionSig = '';
 
         // Global Keybinding (<Super><Alt>a) to toggle dashboard
         this._keybindingRegistered = false;
@@ -607,6 +624,15 @@ export const AntigravityIndicator = GObject.registerClass({
     _checkNotifications(data) {
         if (!data || data.user?.ls_online === false) {
             return;
+        }
+
+        const subSig = data.user?.subscription_signature || data.user?.tier || '';
+        if (this._lastSubscriptionSig && subSig && this._lastSubscriptionSig !== subSig) {
+            this._notifyInitialized = false;
+            this._notifyState = {};
+        }
+        if (subSig) {
+            this._lastSubscriptionSig = subSig;
         }
 
         if (!this._notifyInitialized) {
@@ -1350,7 +1376,7 @@ export const AntigravityIndicator = GObject.registerClass({
         // ================= 3. FOOTER =================
         const now = new Date();
         const timeStr = now.toLocaleTimeString();
-        const verName = this._extension?.metadata?.['version-name'] || '1.5.2';
+        const verName = this._extension?.metadata?.['version-name'] || '1.5.3';
         const footerLabel = new St.Label({
             text: `Última atualização: ${timeStr} • Antigravity vU Linux v${verName}`,
             style_class: 'ag-footer-text',
