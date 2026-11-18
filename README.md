@@ -6,7 +6,7 @@
 [![Architecture](https://img.shields.io/badge/Architecture-ESM%20GJS%20%2B%20Zero--Dep%20CLI-purple)]()
 
 > **Dynamic Island elegante e de altíssima performance para a Top Bar do GNOME Shell.**
-> Monitore cotas de IA (Gemini 4 Argon, Gemini Models, Claude/GPT 3P), janela de contexto ativa, agentes paralelos (*swarm*) e consumo mensal de tokens em tempo real com **zero overhead** de CPU e RAM.
+> Monitore cotas de IA (**Gemini 4 Carbon**, **Orchestrator Carbon/Argon**, **Gemini 4 Hydrogen**, **Gemini 4 Argon**, **Gemini 3.8 Flash**, **Claude Opus/Sonnet 4.6** e **GPT-OSS 120B**), janela de contexto ativa, agentes paralelos (*swarm*) e consumo mensal de tokens em tempo real com **zero overhead** de CPU e RAM.
 
 ---
 
@@ -24,7 +24,7 @@
 
 - 🏝️ **Dynamic Island Unificada (Data/Hora + Antigravity)**: uma única cápsula no centro da Top Bar engloba o `DateMenu` nativo e as métricas do Antigravity. Clicar na data/hora abre o calendário/notificações do GNOME; clicar no lado Antigravity abre o Dashboard de View Usage.
 - 🎨 **Tema Adaptativo do Ubuntu (Light/Dark)**: segue automaticamente `org.gnome.desktop.interface` (`color-scheme`, `gtk-theme`, `accent-color`), com suporte às cores de destaque Yaru/Adwaita.
-- ⚡ **Monitor de Cotas em Tempo Real**: Telemetria direta via ConnectRPC do daemon local do Antigravity (`RetrieveUserQuotaSummary`), cobrindo Gemini 4 Argon, Gemini Pro/Flash e modelos Claude/GPT com percentuais e contagem regressiva de reset (`reset_in`).
+- ⚡ **Monitor de Cotas em Tempo Real**: Telemetria direta via ConnectRPC do daemon local do Antigravity (`RetrieveUserQuotaSummary`), suportando tanto o novo plano Google unificado (`Gemini 4 Carbon`, `Orchestrator (Carbon / Argon)`, `Gemini 4 Hydrogen`, `Gemini 3.8 Flash`) quanto planos legados (`Gemini 4 Argon`) e modelos terceiros (`Claude Opus 4.6`, `Claude Sonnet 4.6`, `GPT-OSS 120B`), com rótulos compactos inteligentes na Top Bar (`Orch Carbon`, `Orch Argon`, `4 Carbon`, `4 Hydrogen`, `4 Argon`, `Gemini 3.8`, `Claude/GPT`) e contagem regressiva de reset (`reset_in`).
 - 🧠 **Rastreador de Swarm & Agentes Ativos**: Visualização em tempo real de sessões e subagentes trabalhando em paralelo (`coordinator`, `explorer`, `gnome-dev`, `verifier`, etc.), status operacional (`WORKING` / `IDLE`) e contagem de steps executados.
 - 🎯 **Janela de Contexto & Prompt Cache**: Detecção do projeto ativo, medição exata de tokens de entrada (`input_tokens`), economia via prompt cache (`cache_read_tokens`) e tokens gerados (`output_tokens`).
 - 📊 **Consumo Mensal & Ranking por Projeto**: Agregação incremental com índice em cache (`mtime_ns`), exibindo o total acumulado do mês e os projetos com maior tráfego.
@@ -45,7 +45,7 @@
 
 | Estágio | Comportamento | Visual |
 | :--- | :--- | :--- |
-| **1. Pílula Estável na Top Bar** | Cápsula única (28px) com data/hora nativas, dot indicador de saúde e cota do modelo ativo no momento. No hover, ganha realce sutil em retângulo com cantos arredondados (padrão Ubuntu System Tray). | `[ 12 de nov 17:30 │ ● 4 Hydrogen 48% ]` |
+| **1. Pílula Estável na Top Bar** | Cápsula única (28px) com data/hora nativas, dot indicador de saúde e rótulo compacto da cota do modelo ativo no momento (`Orch Carbon`, `4 Carbon`, `4 Hydrogen`, `4 Argon`, `Gemini 3.8`, `Claude/GPT`). No hover, ganha realce sutil em retângulo com cantos arredondados (padrão Ubuntu System Tray). | `[ 12 de nov 17:30 │ ● Orch Carbon 48% ]` |
 | **2. Dashboard Completo (2 Colunas, 720px)** | Ao clicar, abre o menu suspenso translúcido estilo Calendar do Ubuntu distribuído em 2 colunas: à esquerda, Cotas, Legenda 2×2 e Sessão Ativa; à direita, Agentes do Swarm completos sem corte, Consumo no Mês e Top Projetos. | *(Popup expansivo de 720px com visual nativo do sistema)* |
 
 ### 🎨 Significado das Cores do Indicador

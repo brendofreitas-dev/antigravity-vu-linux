@@ -79,16 +79,23 @@ O Antigravity executa em segundo plano o daemon `language_server`. As informaç�
   - Headers: `x-codeium-csrf-token: <token>`, `Content-Type: application/json`.
   - Timeout estrito de 1.5s para evitar congelamento em caso de shutdown do processo.
 - **Cache de Quotas**: Se a chamada for bem-sucedida, os dados são salvos em `~/.cache/antigravity-vu/last_quota.json`. Se o servidor estiver temporariamente fechado, o coletor retorna os dados em cache com `ls_online: false`.
+- **Parser Dinâmico de Grupos & Plano Unificado (v1.5.2)**: Em `transform_quota_groups`, o coletor extrai dinamicamente a lista `rpc_models` das descrições do RPC prefixadas por `"Models within this group:"` (compactando `"Orchestrator (Carbon), Orchestrator (Argon)"` para `"Orchestrator (Carbon/Argon)"`). Quando o modelo ativo pertence a `argon` mas o payload do novo plano Google possui apenas os 2 grupos unificados (`gemini` e `3p`), o coletor resolve automaticamente `argon -> gemini` (`Gemini 4 (Carbon / Argon / Hydrogen) & 3.8`).
 
-### 3.2. Extração de Swarm e Sessões (`conversation_summaries.db`)
+### 3.2. Extração de Swarm, Modelo Ativo e Sessões (`conversation_summaries.db` & `gen_metadata`)
 O status dos agentes e do projeto atual é lido diretamente do banco SQLite central do Antigravity:
 - **Caminho**: `~/.gemini/antigravity/conversation_summaries.db`.
 - **Abertura Segura**: Aberto estritamente em modo leitura com URI `file:<path>?mode=ro` e timeout reduzido, garantindo que locks da IDE nunca causem contenção.
 - **Campos Extraídos**:
   - `status`: `CASCADE_RUN_STATUS_RUNNING` (ativo/working) ou `CASCADE_RUN_STATUS_IDLE` (ocioso/waiting).
-  - `agent_name`: Nome da persona do agente (ex: `coordinator`, `explorer`, `researcher`, `gnome-dev`, `verifier`, `monitor`).
+  - `agent_name`: Nome da persona do agente.
   - `parent_conversation_id`: Identificador da sessão coordenadora para reconstrução da árvore hierárquica do swarm.
   - `workspace_uris`: Identificação do projeto ativo (ex: `file:///home/.../antigravity-vU-linux`).
+- **Detecção do Modelo Ativo (`detect_active_model`)**: Inspeciona o campo protobuf 21 em `gen_metadata` de `~/.gemini/antigravity/conversations/<id>.db` (com fallback em `antigravity_state.pbtxt`) usando o regex atualizado `rb"\xaa\x01([\x01-\x7f])((?:Gemini|Claude|GPT-|Orchestrator)[A-Za-z0-9 ._()-]{3,45})"` e a classificação unificada `_classify_model_group` (`3p`, `argon`, `gemini`).
+- **Topologia do Swarm (8 Agentes)**:
+  - `coordinator` — **Orchestrator (Carbon)** (`gemini-pro-orchestrator`)
+  - `gnome-dev`, `explorer`, `verifier` — **Gemini 4 Hydrogen (High)** (`gemini-4-hydrogen-high`)
+  - `researcher`, `docs-agent` — **Gemini 4 Hydrogen (Medium)** (`gemini-4-hydrogen-medium`)
+  - `git-release`, `monitor` — **Gemini 3.8 Flash (High)** (`gemini-3.8-flash-high`)
 
 ### 3.3. Indexador Incremental de Tokens (`transcript.jsonl`)
 O Antigravity registra os turnos de conversa em arquivos JSON Lines por sessão (`~/.gemini/antigravity/brain/<conversation_id>/.system_generated/logs/transcript.jsonl`):
@@ -145,6 +152,7 @@ Main.panel.addToStatusArea(this.uuid, this._indicator, 1, 'center');
 - **Hot-reload & Ciclo de Vida Resiliente (v1.5.1)**: `extension.js` atua como carregador com importação determinística (`file://${islandPath}?v=${mtime}_${size}`). Durante ciclos normais de bloqueio/desbloqueio de tela, o GJS reutiliza o módulo já carregado em 0ms. Em caso de edição em disco, a nova versão é carregada gerando nomes de GType dinâmicos e únicos (`resolveUniqueGTypeName`), evitando colisões de classes GObject.
 - **Regra de tema**: `prefer-light` → Light; `prefer-dark` → Dark; `gtk-theme` (`-dark`) só quando `color-scheme` = `default`. Também escuta `St.ThemeContext` `changed`. Paleta Yaru neutra (Dark `#36363a`/cards `#2a2a2e`; Light `#ffffff`/cards `#f4f4f6`).
 - **Estilo System Tray Nativo (v1.2.2)**: Em repouso, a cápsula unificada é 100% transparente no painel. Ao passar o mouse, adota o realce nativo do Ubuntu Yaru (`box-shadow: inset 0 0 0 100px rgba(255, 255, 255, 0.17)` com `border: 3px solid transparent`), sem sombras cinzas externas ou bordas estáticas.
+- **Rótulos Compactos & Quebra de Linha Segura (v1.5.2)**: A pílula na Top Bar mapeia os modelos ativos para rótulos curtos (`Orch Carbon`, `Orch Argon`, `4 Carbon`, `4 Hydrogen`, `4 Argon`, `Gemini 3.8`, `Claude/GPT`). No dashboard, `.ag-group-desc` usa `Pango.WrapMode.WORD_CHAR` (`ellipsize: NONE`, `max-width: 320px`) para acomodar listas multi-modelo sem estourar a coluna esquerda de 345px.
 
 ### 4.3. Os Dois Estágios da Dynamic Island (v1.3.0)
 

@@ -7,6 +7,24 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ---
 
+## [1.5.2] - 2026-11-18
+
+### Adicionado
+- **Suporte às novas famílias de modelos do plano Google (`Orchestrator`, `Carbon`, `Claude 4.6`)**:
+  - Regex protobuf em `detect_active_model` (`backend/ag_vu_collector.py`) atualizado para capturar modelos `Orchestrator` além de `Gemini`, `Claude` e `GPT-` (com classificação unificada `_classify_model_group` aplicada também ao fallback `antigravity_state.pbtxt`).
+  - Parser dinâmico de descrições live do RPC (`"Models within this group:..."`) em `transform_quota_groups`, extraindo automaticamente `rpc_models` e compactando `"Orchestrator (Carbon), Orchestrator (Argon)"` para `"Orchestrator (Carbon/Argon)"`.
+  - Resolução unificada de grupo no novo plano de 2 grupos: quando `active_model_group == "argon"` e o grupo `"argon"` dedicado não existir no payload, vincula automaticamente ao pool `"gemini"` (`Gemini 4 (Carbon / Argon / Hydrogen) & 3.8`).
+  - Grupo `3p` atualizado para refletir **Claude Opus 4.6**, **Claude Sonnet 4.6** e **GPT-OSS 120B**.
+- **Rótulos curtos na Top Bar e quebra de linha segura na UI (`extension/island.js`, `extension/stylesheet.css`)**:
+  - Novos rótulos compactos na pílula: `Orch Carbon`, `Orch Argon`, `4 Carbon`, `4 Hydrogen`, `4 Argon`, `Gemini 3.8` e `Claude/GPT`.
+  - Quebra de linha automática (`Pango.WrapMode.WORD_CHAR`, `ellipsize: NONE`, `max-width: 320px`) em `.ag-group-desc` para exibir descrições multi-modelo completas na coluna esquerda sem estouro horizontal.
+- **Topologia do Swarm e Suíte de Testes**:
+  - `AGENTS.md` e `docs/ARCHITECTURE.md` atualizados com a topologia completa dos 8 agentes e seus modelos do novo plano.
+  - Suíte unitária expandida para **26/26 testes aprovados** (adicionados `test_detect_active_model_new_models_and_pbtxt_fallback` e `test_unified_plan_two_groups_new_models`).
+  - `extension/metadata.json` atualizado para `version: 13` e `version-name: "1.5.2"`.
+
+---
+
 ## [1.5.1] - 2026-11-13
 
 ### Corrigido

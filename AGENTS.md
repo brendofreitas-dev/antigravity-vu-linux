@@ -4,13 +4,16 @@
 - **Resumo**: extensão GNOME Shell 45–50+ (Unified Dynamic Island: Data/Hora + Antigravity; tema adaptativo Ubuntu Light/Dark) + backend Python `ag-vu`.
 
 ## Topologia de agentes
-| Agente | Responsabilidade |
-| :--- | :--- |
-| `coordinator` | Planejamento e interação com o usuário |
-| `gnome-dev` | `extension/extension.js`, `extension/stylesheet.css` |
-| `verifier` | Testes, auditoria, validação em runtime |
-| `docs-agent` | README, CHANGELOG, ROADMAP, CONTRIBUTING, `docs/`, AGENTS.md |
-| `git-release` | Commits semânticos, tags, push e Releases |
+| Agente | Responsabilidade | Modelo |
+| :--- | :--- | :--- |
+| `coordinator` | Planejamento e interação com o usuário | Orchestrator (Carbon) (`gemini-pro-orchestrator`) |
+| `gnome-dev` | `extension/island.js`, `extension/extension.js`, `extension/stylesheet.css`, `extension/metadata.json`, `extension/schemas/*`, `install.sh` | Gemini 4 Hydrogen (High) (`gemini-4-hydrogen-high`) |
+| `explorer` | `backend/ag_vu_collector.py`, `tests/test_collector.py` | Gemini 4 Hydrogen (High) (`gemini-4-hydrogen-high`) |
+| `verifier` | Testes, auditoria de código e documentação, validação em runtime | Gemini 4 Hydrogen (High) (`gemini-4-hydrogen-high`) |
+| `researcher` | Pesquisa técnica e referências UI/UX | Gemini 4 Hydrogen (Medium) (`gemini-4-hydrogen-medium`) |
+| `docs-agent` | `README.md`, `CHANGELOG.md`, `ROADMAP.md`, `CONTRIBUTING.md`, `docs/`, `AGENTS.md` | Gemini 4 Hydrogen (Medium) (`gemini-4-hydrogen-medium`) |
+| `git-release` | Commits semânticos, tags, push e Releases | Gemini 3.8 Flash (High) (`gemini-3.8-flash-high`) |
+| `monitor` | Monitoramento do quadro do Swarm | Gemini 3.8 Flash (High) (`gemini-3.8-flash-high`) |
 
 ## Arquitetura
 - `backend/ag_vu_collector.py`: coletor Python puro (RPC local, SQLite `mode=ro`, índice de transcripts); CLI `ag-vu`.
