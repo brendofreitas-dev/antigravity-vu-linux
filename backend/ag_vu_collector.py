@@ -298,7 +298,12 @@ class AntigravityCollector:
         self, daemon_info: Optional[Dict[str, Any]]
     ) -> Tuple[bool, Dict[str, Any], Optional[Dict[str, Any]]]:
         """Fetch real-time quota and user status from daemon, with fallback to disk cache."""
-        user_info = {"name": "User", "tier": "Pro", "ls_online": False}
+        user_info: Dict[str, Any] = {
+            "name": "User",
+            "tier": "Pro",
+            "teams_tier": "",
+            "ls_online": False,
+        }
         quota_data = None
 
         if daemon_info:
@@ -309,6 +314,7 @@ class AntigravityCollector:
                 user_info["name"] = us.get("name", "User")
                 plan = us.get("planStatus", {}).get("planInfo", {})
                 user_info["tier"] = plan.get("planName", "Pro")
+                user_info["teams_tier"] = plan.get("teamsTier", "")
 
             # Query quota summary
             quota_resp = self.call_rpc("RetrieveUserQuotaSummary", daemon_info)
@@ -331,9 +337,19 @@ class AntigravityCollector:
                         cached_user = cached.get("user", {})
                         user_info["name"] = cached_user.get("name", user_info["name"])
                         user_info["tier"] = cached_user.get("tier", user_info["tier"])
+                        user_info["teams_tier"] = cached_user.get("teams_tier", user_info["teams_tier"])
                         quota_data = cached.get("quota")
             except Exception:
                 pass
+
+        if quota_data:
+            group_sig = "|".join(
+                f"{g.get('displayName', '')}:{g.get('description', '')}"
+                for g in quota_data.get("groups", [])
+            )
+            user_info["subscription_signature"] = (
+                f"{user_info['tier']}:{user_info.get('teams_tier', '')}:{group_sig}"
+            )
 
         return user_info["ls_online"], user_info, quota_data
 
@@ -407,6 +423,35 @@ class AntigravityCollector:
 
         return None, None, None
 
+    @staticmethod
+    def _derive_short_pill_label(
+        active_model_label: Optional[str], default_group_pill: str
+    ) -> str:
+        """Derive concise Top Bar pill label from active model name or fallback to group pill."""
+        if not active_model_label:
+            return default_group_pill
+        lbl = active_model_label.lower()
+        if "orchestrator" in lbl and "carbon" in lbl:
+            return "Orch\u00a0Carbon"
+        if "orchestrator" in lbl and "argon" in lbl:
+            return "Orch\u00a0Argon"
+        if "carbon" in lbl:
+            return "4\u00a0Carbon"
+        if "hydrogen" in lbl:
+            return "4\u00a0Hydrogen"
+        if "flash" in lbl or "3.8" in lbl:
+            return "Gemini\u00a03.8"
+        if "argon" in lbl:
+            return "4\u00a0Argon"
+        if any(k in lbl for k in ("claude", "opus", "sonnet", "gpt")):
+            return "Claude / GPT"
+
+        clean = re.sub(r"\s*\([^)]*\)\s*", " ", active_model_label).strip()
+        clean = re.sub(r"^Gemini\s+", "", clean, flags=re.IGNORECASE).strip()
+        if clean:
+            return re.sub(r"\s+", "\u00a0", clean)
+        return default_group_pill
+
     def transform_quota_groups(
         self,
         quota_raw: Optional[Dict[str, Any]],
@@ -437,66 +482,17 @@ class AntigravityCollector:
             "gemini 4 argon": "argon",
         }
 
-        # Rich group metadata defining official display names, subtitles, and models:
-        # Note: "pill_name" uses Non-Breaking Space (\u00a0) where appropriate so legacy
-        # in-memory JS instances doing .replace('Gemini ', '') will not strip "Gemini".
-        group_meta = {
-            "gemini": {
-                "name": "Gemini 3.8 & 4 Hydrogen",
-                "pill_name": "Gemini\u00a03.8",
-                "description": "Gemini 4 Carbon, Gemini 4 Hydrogen, Gemini 3.8 Flash",
-                "models": [
-                    "Gemini 4 Carbon",
-                    "Gemini 4 Hydrogen",
-                    "Gemini 3.8 Flash",
-                    "Gemini 2.5 Pro",
-                ],
-            },
-            "argon": {
-                "name": "Gemini 4 Argon",
-                "pill_name": "Gemini 4 Argon",
-                "description": "Gemini 4 Argon (Weekly WTU Quota)",
-                "models": [
-                    "Gemini 4 Argon",
-                ],
-            },
-            "3p": {
-                "name": "Claude & GPT (Opus / Sonnet / GPT)",
-                "pill_name": "Claude / GPT",
-                "description": "Claude Opus 4.6, Claude Sonnet 4.6, GPT-OSS 120B",
-                "models": [
-                    "Claude Opus 4.6",
-                    "Claude Sonnet 4.6",
-                    "GPT-OSS 120B",
-                ],
-            },
-        }
-
         raw_groups = quota_raw.get("groups", [])
-        present_group_ids = {
-            group_id_map.get(
-                g.get("displayName", "Unknown").lower().strip(),
-                re.sub(r"[^a-z0-9]+", "-", g.get("displayName", "Unknown").lower()),
-            )
-            for g in raw_groups
-        }
-        effective_active_group = active_model_group
-        if effective_active_group == "argon" and "argon" not in present_group_ids:
-            effective_active_group = "gemini"
-
-        lowest_bucket = None
-        pinned_candidate = None
-        active_candidate = None
+        parsed_groups: List[Tuple[str, Dict[str, Any], Dict[str, Any]]] = []
+        present_group_ids = set()
 
         for grp in raw_groups:
             raw_name = grp.get("displayName", "Unknown")
-            g_id = group_id_map.get(raw_name.lower().strip(), re.sub(r"[^a-z0-9]+", "-", raw_name.lower()))
-            meta = dict(group_meta.get(g_id, {
-                "name": raw_name,
-                "pill_name": raw_name,
-                "description": raw_name,
-                "models": [],
-            }))
+            g_id = group_id_map.get(
+                raw_name.lower().strip(),
+                re.sub(r"[^a-z0-9]+", "-", raw_name.lower()).strip("-"),
+            )
+            present_group_ids.add(g_id)
 
             raw_desc = (grp.get("description") or "").strip()
             rpc_models: List[str] = []
@@ -513,13 +509,97 @@ class AntigravityCollector:
             elif raw_desc:
                 clean_desc = raw_desc
 
-            if g_id == "gemini" and "carbon" in raw_desc.lower():
-                meta["name"] = "Gemini 4 (Carbon / Argon / Hydrogen) & 3.8"
-            if clean_desc:
-                meta["description"] = clean_desc
-            if rpc_models:
-                meta["models"] = rpc_models
+            if g_id == "argon":
+                # Note: "pill_name" uses Non-Breaking Space (\u00a0) where appropriate so legacy
+                # in-memory JS instances doing .replace('Gemini ', '') will not strip "Gemini".
+                if rpc_models:
+                    meta = {
+                        "name": "Gemini 4 Argon",
+                        "pill_name": "Gemini 4 Argon",
+                        "description": clean_desc,
+                        "models": rpc_models,
+                    }
+                else:
+                    meta = {
+                        "name": "Gemini 4 Argon",
+                        "pill_name": "Gemini 4 Argon",
+                        "description": "Gemini 4 Argon (Weekly WTU Quota)",
+                        "models": ["Gemini 4 Argon"],
+                    }
+            elif g_id == "gemini":
+                if rpc_models:
+                    desc_lower = raw_desc.lower()
+                    if "carbon" in desc_lower:
+                        dyn_name = "Gemini 4 (Carbon / Argon / Hydrogen) & 3.8"
+                    elif "hydrogen" in desc_lower and "3.8" in desc_lower:
+                        dyn_name = "Gemini 3.8 & 4 Hydrogen"
+                    else:
+                        dyn_name = " & ".join(rpc_models[:3])
+                    meta = {
+                        "name": dyn_name,
+                        "pill_name": "Gemini\u00a03.8",
+                        "description": clean_desc,
+                        "models": rpc_models,
+                    }
+                else:
+                    meta = {
+                        "name": "Gemini 3.8 & 4 Hydrogen",
+                        "pill_name": "Gemini\u00a03.8",
+                        "description": clean_desc or "Gemini 3.8 Flash, Gemini 4 Hydrogen",
+                        "models": ["Gemini 4 Hydrogen", "Gemini 3.8 Flash"],
+                    }
+            elif g_id == "3p":
+                meta = {
+                    "name": "Claude & GPT (Opus / Sonnet / GPT)",
+                    "pill_name": "Claude / GPT",
+                    "description": clean_desc or "Claude Opus 4.6, Claude Sonnet 4.6, GPT-OSS 120B",
+                    "models": rpc_models or ["Claude Opus 4.6", "Claude Sonnet 4.6", "GPT-OSS 120B"],
+                }
+            else:
+                meta = {
+                    "name": raw_name,
+                    "pill_name": raw_name,
+                    "description": clean_desc or raw_name,
+                    "models": rpc_models or [raw_name],
+                }
 
+            parsed_groups.append((g_id, meta, grp))
+
+        effective_active_group = active_model_group
+        matched_by_model = None
+        if active_model_label:
+            raw_lbl = active_model_label.strip().lower()
+            norm_effort = re.sub(
+                r"\s*\((?:high|medium|low|xhigh|thinking|minimal|fast)\)\s*$",
+                "",
+                active_model_label,
+                flags=re.IGNORECASE,
+            ).strip().lower()
+            norm_any_paren = re.sub(r"\s*\([^)]*\)\s*$", "", active_model_label).strip().lower()
+
+            for pg_id, p_meta, _ in parsed_groups:
+                model_set = {m.strip().lower() for m in p_meta.get("models", [])}
+                if raw_lbl in model_set or norm_effort in model_set:
+                    matched_by_model = pg_id
+                    break
+
+            if not matched_by_model and norm_any_paren:
+                for pg_id, p_meta, _ in parsed_groups:
+                    model_set = {m.strip().lower() for m in p_meta.get("models", [])}
+                    if norm_any_paren in model_set:
+                        matched_by_model = pg_id
+                        break
+
+        if matched_by_model:
+            effective_active_group = matched_by_model
+        elif effective_active_group == "argon" and "argon" not in present_group_ids:
+            effective_active_group = "gemini"
+
+        lowest_bucket = None
+        pinned_candidate = None
+        active_candidate = None
+
+        for g_id, meta, grp in parsed_groups:
             g_name = meta["name"]
             g_pill = meta["pill_name"]
             buckets_out = []
@@ -607,23 +687,7 @@ class AntigravityCollector:
             selected = pinned_candidate
         elif pinned_group_pref == "auto" and active_candidate is not None:
             selected = dict(active_candidate)
-            # Refine pill label according to active model
-            if active_model_label:
-                lbl = active_model_label.lower()
-                if "orchestrator" in lbl and "carbon" in lbl:
-                    selected["group"] = "Orch\u00a0Carbon"
-                elif "orchestrator" in lbl and "argon" in lbl:
-                    selected["group"] = "Orch\u00a0Argon"
-                elif "carbon" in lbl:
-                    selected["group"] = "4\u00a0Carbon"
-                elif "hydrogen" in lbl:
-                    selected["group"] = "4\u00a0Hydrogen"
-                elif "flash" in lbl or "3.8" in lbl:
-                    selected["group"] = "Gemini\u00a03.8"
-                elif "argon" in lbl:
-                    selected["group"] = "4\u00a0Argon"
-                elif "claude" in lbl or "opus" in lbl or "sonnet" in lbl or "gpt" in lbl:
-                    selected["group"] = "Claude / GPT"
+            selected["group"] = self._derive_short_pill_label(active_model_label, selected["group"])
         else:
             selected = lowest_bucket
 
@@ -1098,6 +1162,15 @@ class AntigravityCollector:
             active_model_group=active_ctx.get("active_model_group"),
             active_model_label=active_ctx.get("active_model_label"),
         )
+
+        available_models: List[str] = []
+        seen_models = set()
+        for grp in quota_groups:
+            for model_name in grp.get("models", []):
+                if model_name and model_name not in seen_models:
+                    seen_models.add(model_name)
+                    available_models.append(model_name)
+        user_info["available_models"] = available_models
 
         # 5. Index transcripts for monthly & project token telemetry
         monthly_tok, projects_list, daily_history = self.index_transcripts(convs)

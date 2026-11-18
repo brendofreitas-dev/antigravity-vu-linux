@@ -297,6 +297,147 @@ class TestQuotaTransformation(unittest.TestCase):
         self.assertEqual(primary_orch_argon["group"], "Orch\u00a0Argon")
         self.assertAlmostEqual(primary_orch_argon["remaining_pct"], 92.0, places=1)
 
+    def test_automatic_subscription_switching_and_future_model_discovery(self):
+        # 1) Paid Pro 3-group payload with prose Argon description and Opus/Sonnet 5.5
+        pro_3group_raw = {
+            "groups": [
+                {
+                    "displayName": "Gemini Models",
+                    "description": "Models within this group: Gemini 4 Hydrogen, Gemini 3.8 Flash",
+                    "buckets": [
+                        {
+                            "bucketId": "gemini-weekly",
+                            "window": "weekly",
+                            "remainingFraction": 0.97,
+                            "resetTime": "2026-11-25T13:18:36Z",
+                        },
+                        {
+                            "bucketId": "gemini-5h",
+                            "window": "5h",
+                            "remainingFraction": 0.95,
+                            "resetTime": "2026-11-18T18:18:36Z",
+                        },
+                    ],
+                },
+                {
+                    "displayName": "Claude and GPT models",
+                    "description": "Models within this group: Claude Opus 5.5, Claude Sonnet 5.5, GPT-OSS 120B",
+                    "buckets": [
+                        {
+                            "bucketId": "3p-weekly",
+                            "window": "weekly",
+                            "remainingFraction": 1.0,
+                            "resetTime": "2026-11-25T13:21:55Z",
+                        },
+                    ],
+                },
+                {
+                    "displayName": "Gemini 4 Argon",
+                    "description": (
+                        "For paid Pro plans, Argon quota is separate. Higher Argon quota "
+                        "(included as part of the larger Gemini quota bucket) is available on Ultra plans."
+                    ),
+                    "buckets": [
+                        {
+                            "bucketId": "gemini-argon-wtu-weekly",
+                            "window": "weekly",
+                            "remainingFraction": 0.88,
+                            "resetTime": "2026-11-25T13:21:55Z",
+                        },
+                    ],
+                },
+            ]
+        }
+
+        primary_pro, groups_pro = self.collector.transform_quota_groups(
+            pro_3group_raw,
+            pinned_group_pref="auto",
+            active_model_group="gemini",
+            active_model_label="Gemini 4 Hydrogen (High)",
+        )
+        self.assertEqual(len(groups_pro), 3)
+        self.assertEqual(groups_pro[0]["name"], "Gemini 3.8 & 4 Hydrogen")
+        self.assertEqual(groups_pro[0]["description"], "Gemini 4 Hydrogen, Gemini 3.8 Flash")
+        self.assertEqual(groups_pro[1]["description"], "Claude Opus 5.5, Claude Sonnet 5.5, GPT-OSS 120B")
+        self.assertEqual(groups_pro[1]["models"], ["Claude Opus 5.5", "Claude Sonnet 5.5", "GPT-OSS 120B"])
+        self.assertEqual(groups_pro[2]["description"], "Gemini 4 Argon (Weekly WTU Quota)")
+        self.assertEqual(groups_pro[2]["models"], ["Gemini 4 Argon"])
+        self.assertEqual(primary_pro["group"], "4\u00a0Hydrogen")
+
+        # Dynamic switch to 2-group unified payload
+        unified_2group_raw = {
+            "groups": [
+                {
+                    "displayName": "Gemini Models",
+                    "description": "Models within this group: Gemini 4 Carbon, Gemini 4 Hydrogen, Gemini 3.8 Flash",
+                    "buckets": [
+                        {
+                            "bucketId": "gemini-5h",
+                            "window": "5h",
+                            "remainingFraction": 0.80,
+                            "resetTime": "2026-11-18T18:18:36Z",
+                        },
+                    ],
+                },
+                {
+                    "displayName": "Claude and GPT models",
+                    "description": "Models within this group: Claude Opus 4.6, Claude Sonnet 4.6, GPT-OSS 120B",
+                    "buckets": [],
+                },
+            ]
+        }
+        primary_2g, groups_2g = self.collector.transform_quota_groups(
+            unified_2group_raw,
+            pinned_group_pref="auto",
+            active_model_group="gemini",
+            active_model_label="Gemini 4 Carbon (High)",
+        )
+        self.assertEqual(len(groups_2g), 2)
+        self.assertEqual(groups_2g[0]["name"], "Gemini 4 (Carbon / Argon / Hydrogen) & 3.8")
+        self.assertEqual(primary_2g["group"], "4\u00a0Carbon")
+
+        # 2) Unseen future model & dynamic group discovery
+        future_raw = {
+            "groups": [
+                {
+                    "displayName": "Gemini Models",
+                    "description": "Models within this group: Gemini 4 Hydrogen",
+                    "buckets": [
+                        {
+                            "bucketId": "gemini-5h",
+                            "window": "5h",
+                            "remainingFraction": 0.90,
+                            "resetTime": "2026-11-18T18:18:36Z",
+                        },
+                    ],
+                },
+                {
+                    "displayName": "Experimental NextGen",
+                    "description": "Models within this group: Gemini 5 Xenon",
+                    "buckets": [
+                        {
+                            "bucketId": "xenon-5h",
+                            "window": "5h",
+                            "remainingFraction": 0.42,
+                            "resetTime": "2026-11-18T18:18:36Z",
+                        },
+                    ],
+                },
+            ]
+        }
+        primary_future, groups_future = self.collector.transform_quota_groups(
+            future_raw,
+            pinned_group_pref="auto",
+            active_model_group="gemini",  # even if classified generically as gemini, rpc_models binds to Experimental NextGen!
+            active_model_label="Gemini 5 Xenon (High)",
+        )
+        self.assertEqual(len(groups_future), 2)
+        self.assertEqual(groups_future[1]["name"], "Experimental NextGen")
+        self.assertEqual(groups_future[1]["description"], "Gemini 5 Xenon")
+        self.assertEqual(groups_future[1]["models"], ["Gemini 5 Xenon"])
+        self.assertEqual(primary_future["group"], "5\u00a0Xenon")
+        self.assertAlmostEqual(primary_future["remaining_pct"], 42.0, places=1)
+
 
 class TestPreferencesAndCache(unittest.TestCase):
     """Test preferences and disk caching mechanics."""
