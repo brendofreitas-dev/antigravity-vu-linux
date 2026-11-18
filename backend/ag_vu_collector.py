@@ -340,6 +340,16 @@ class AntigravityCollector:
     # ------------------------------------------------------------------
     # Quota Transformation
     # ------------------------------------------------------------------
+    @staticmethod
+    def _classify_model_group(label: str) -> str:
+        """Classify a model label into its quota group ID ('3p', 'argon', or 'gemini')."""
+        lower_label = label.lower()
+        if any(k in lower_label for k in ("claude", "gpt", "sonnet", "opus")):
+            return "3p"
+        if "argon" in lower_label:
+            return "argon"
+        return "gemini"
+
     def detect_active_model(
         self, active_cid: str, parent_cid: Optional[str] = None
     ) -> Tuple[Optional[str], Optional[str], Optional[str]]:
@@ -367,7 +377,7 @@ class AntigravityCollector:
                     if not data:
                         continue
                     matches = re.findall(
-                        rb"\xaa\x01([\x01-\x7f])((?:Gemini|Claude|GPT-)[A-Za-z0-9 ._()-]{3,40})",
+                        rb"\xaa\x01([\x01-\x7f])((?:Gemini|Claude|GPT-|Orchestrator)[A-Za-z0-9 ._()-]{3,45})",
                         data,
                     )
                     for length_b, text_b in matches:
@@ -376,13 +386,7 @@ class AntigravityCollector:
                         if clean_label:
                             con.close()
                             slug = re.sub(r"[^a-z0-9.]+", "-", clean_label.lower()).strip("-")
-                            lower_label = clean_label.lower()
-                            if "argon" in lower_label:
-                                group_id = "argon"
-                            elif "claude" in lower_label or "gpt" in lower_label:
-                                group_id = "3p"
-                            else:
-                                group_id = "gemini"
+                            group_id = self._classify_model_group(clean_label)
                             return slug, clean_label, group_id
                 con.close()
             except Exception:
@@ -397,7 +401,7 @@ class AntigravityCollector:
                         if "last_selected_agent_model" in line:
                             val = line.split(":")[-1].strip().strip('"')
                             if val:
-                                return val, val, "gemini"
+                                return val, val, self._classify_model_group(val)
             except Exception:
                 pass
 
@@ -440,11 +444,11 @@ class AntigravityCollector:
             "gemini": {
                 "name": "Gemini 3.8 & 4 Hydrogen",
                 "pill_name": "Gemini\u00a03.8",
-                "description": "Gemini 3.8 Flash, Gemini 4 Hydrogen, Gemini 3.5 Lite",
+                "description": "Gemini 4 Carbon, Gemini 4 Hydrogen, Gemini 3.8 Flash",
                 "models": [
-                    "Gemini 3.8 Flash",
+                    "Gemini 4 Carbon",
                     "Gemini 4 Hydrogen",
-                    "Gemini 3.5 Flash Lite",
+                    "Gemini 3.8 Flash",
                     "Gemini 2.5 Pro",
                 ],
             },
@@ -459,28 +463,63 @@ class AntigravityCollector:
             "3p": {
                 "name": "Claude & GPT (Opus / Sonnet / GPT)",
                 "pill_name": "Claude / GPT",
-                "description": "Claude Opus 5.5, Claude Sonnet 5.5, GPT-OSS 120B",
+                "description": "Claude Opus 4.6, Claude Sonnet 4.6, GPT-OSS 120B",
                 "models": [
-                    "Claude Opus 5.5",
-                    "Claude Sonnet 5.5",
+                    "Claude Opus 4.6",
+                    "Claude Sonnet 4.6",
                     "GPT-OSS 120B",
                 ],
             },
         }
 
+        raw_groups = quota_raw.get("groups", [])
+        present_group_ids = {
+            group_id_map.get(
+                g.get("displayName", "Unknown").lower().strip(),
+                re.sub(r"[^a-z0-9]+", "-", g.get("displayName", "Unknown").lower()),
+            )
+            for g in raw_groups
+        }
+        effective_active_group = active_model_group
+        if effective_active_group == "argon" and "argon" not in present_group_ids:
+            effective_active_group = "gemini"
+
         lowest_bucket = None
         pinned_candidate = None
         active_candidate = None
 
-        for grp in quota_raw.get("groups", []):
+        for grp in raw_groups:
             raw_name = grp.get("displayName", "Unknown")
             g_id = group_id_map.get(raw_name.lower().strip(), re.sub(r"[^a-z0-9]+", "-", raw_name.lower()))
-            meta = group_meta.get(g_id, {
+            meta = dict(group_meta.get(g_id, {
                 "name": raw_name,
                 "pill_name": raw_name,
                 "description": raw_name,
                 "models": [],
-            })
+            }))
+
+            raw_desc = (grp.get("description") or "").strip()
+            rpc_models: List[str] = []
+            clean_desc = ""
+            if raw_desc.lower().startswith("models within this group:"):
+                stripped = raw_desc[len("models within this group:"):].strip()
+                rpc_models = [m.strip() for m in stripped.split(",") if m.strip()]
+                clean_desc = re.sub(
+                    r"Orchestrator\s*\(Carbon\)\s*,\s*Orchestrator\s*\(Argon\)",
+                    "Orchestrator (Carbon/Argon)",
+                    stripped,
+                    flags=re.IGNORECASE,
+                )
+            elif raw_desc:
+                clean_desc = raw_desc
+
+            if g_id == "gemini" and "carbon" in raw_desc.lower():
+                meta["name"] = "Gemini 4 (Carbon / Argon / Hydrogen) & 3.8"
+            if clean_desc:
+                meta["description"] = clean_desc
+            if rpc_models:
+                meta["models"] = rpc_models
+
             g_name = meta["name"]
             g_pill = meta["pill_name"]
             buckets_out = []
@@ -528,7 +567,7 @@ class AntigravityCollector:
                     lowest_bucket = candidate
 
                 # Active model candidate tracking
-                if active_model_group and g_id == active_model_group:
+                if effective_active_group and g_id == effective_active_group:
                     if active_candidate is None:
                         active_candidate = candidate
                     elif rem_pct < active_candidate["remaining_pct"]:
@@ -569,12 +608,22 @@ class AntigravityCollector:
         elif pinned_group_pref == "auto" and active_candidate is not None:
             selected = dict(active_candidate)
             # Refine pill label according to active model
-            if active_model_label and "hydrogen" in active_model_label.lower():
-                selected["group"] = "4\u00a0Hydrogen"
-            elif active_model_label and "flash" in active_model_label.lower():
-                selected["group"] = "Gemini\u00a03.8"
-            elif active_model_label and "argon" in active_model_label.lower():
-                selected["group"] = "Gemini 4 Argon"
+            if active_model_label:
+                lbl = active_model_label.lower()
+                if "orchestrator" in lbl and "carbon" in lbl:
+                    selected["group"] = "Orch\u00a0Carbon"
+                elif "orchestrator" in lbl and "argon" in lbl:
+                    selected["group"] = "Orch\u00a0Argon"
+                elif "carbon" in lbl:
+                    selected["group"] = "4\u00a0Carbon"
+                elif "hydrogen" in lbl:
+                    selected["group"] = "4\u00a0Hydrogen"
+                elif "flash" in lbl or "3.8" in lbl:
+                    selected["group"] = "Gemini\u00a03.8"
+                elif "argon" in lbl:
+                    selected["group"] = "4\u00a0Argon"
+                elif "claude" in lbl or "opus" in lbl or "sonnet" in lbl or "gpt" in lbl:
+                    selected["group"] = "Claude / GPT"
         else:
             selected = lowest_bucket
 

@@ -187,6 +187,116 @@ class TestQuotaTransformation(unittest.TestCase):
         self.assertEqual(primary["remaining_pct"], 100.0)
         self.assertEqual(len(groups), 0)
 
+    def test_unified_plan_two_groups_new_models(self):
+        unified_raw = {
+            "groups": [
+                {
+                    "displayName": "Gemini Models",
+                    "description": (
+                        "Models within this group: Gemini 4 Carbon, Gemini 4 Argon, "
+                        "Gemini 4 Hydrogen, Orchestrator (Carbon), Orchestrator (Argon), Gemini 3.8 Flash"
+                    ),
+                    "buckets": [
+                        {
+                            "bucketId": "gemini-weekly",
+                            "window": "weekly",
+                            "remainingFraction": 0.99,
+                            "resetTime": "2026-11-25T11:16:57Z",
+                        },
+                        {
+                            "bucketId": "gemini-5h",
+                            "window": "5h",
+                            "remainingFraction": 0.92,
+                            "resetTime": "2026-11-18T16:16:57Z",
+                        },
+                    ],
+                },
+                {
+                    "displayName": "Claude and GPT models",
+                    "description": "Models within this group: Claude Sonnet 4.6, Claude Opus 4.6, GPT-OSS 120B",
+                    "buckets": [
+                        {
+                            "bucketId": "3p-weekly",
+                            "window": "weekly",
+                            "remainingFraction": 1.0,
+                            "resetTime": "2026-11-25T11:21:11Z",
+                        },
+                        {
+                            "bucketId": "3p-5h",
+                            "window": "5h",
+                            "remainingFraction": 1.0,
+                            "resetTime": "2026-11-18T16:21:11Z",
+                        },
+                    ],
+                },
+            ]
+        }
+
+        # 1. Orchestrator (Carbon) -> Orch\u00a0Carbon + dynamic description/models extraction
+        primary_orch, groups = self.collector.transform_quota_groups(
+            unified_raw,
+            pinned_group_pref="auto",
+            active_model_group="gemini",
+            active_model_label="Orchestrator (Carbon)",
+        )
+        self.assertEqual(len(groups), 2)
+        self.assertEqual(primary_orch["group"], "Orch\u00a0Carbon")
+        self.assertEqual(primary_orch["window"], "5h")
+        self.assertAlmostEqual(primary_orch["remaining_pct"], 92.0, places=1)
+
+        gem_group = groups[0]
+        self.assertEqual(gem_group["name"], "Gemini 4 (Carbon / Argon / Hydrogen) & 3.8")
+        self.assertEqual(
+            gem_group["description"],
+            "Gemini 4 Carbon, Gemini 4 Argon, Gemini 4 Hydrogen, Orchestrator (Carbon/Argon), Gemini 3.8 Flash",
+        )
+        self.assertEqual(
+            gem_group["models"],
+            [
+                "Gemini 4 Carbon",
+                "Gemini 4 Argon",
+                "Gemini 4 Hydrogen",
+                "Orchestrator (Carbon)",
+                "Orchestrator (Argon)",
+                "Gemini 3.8 Flash",
+            ],
+        )
+
+        p3_group = groups[1]
+        self.assertEqual(p3_group["description"], "Claude Sonnet 4.6, Claude Opus 4.6, GPT-OSS 120B")
+        self.assertEqual(p3_group["models"], ["Claude Sonnet 4.6", "Claude Opus 4.6", "GPT-OSS 120B"])
+
+        # 2. Gemini 4 Carbon (High) -> 4\u00a0Carbon
+        primary_carbon, _ = self.collector.transform_quota_groups(
+            unified_raw,
+            pinned_group_pref="auto",
+            active_model_group="gemini",
+            active_model_label="Gemini 4 Carbon (High)",
+        )
+        self.assertEqual(primary_carbon["group"], "4\u00a0Carbon")
+        self.assertAlmostEqual(primary_carbon["remaining_pct"], 92.0, places=1)
+
+        # 3. Gemini 4 Argon (High) with active_model_group="argon" in 2-group plan -> binds to gemini bucket as 4\u00a0Argon
+        primary_argon, _ = self.collector.transform_quota_groups(
+            unified_raw,
+            pinned_group_pref="auto",
+            active_model_group="argon",
+            active_model_label="Gemini 4 Argon (High)",
+        )
+        self.assertEqual(primary_argon["group"], "4\u00a0Argon")
+        self.assertEqual(primary_argon["window"], "5h")
+        self.assertAlmostEqual(primary_argon["remaining_pct"], 92.0, places=1)
+
+        # 4. Orchestrator (Argon) with active_model_group="argon" in 2-group plan -> Orch\u00a0Argon
+        primary_orch_argon, _ = self.collector.transform_quota_groups(
+            unified_raw,
+            pinned_group_pref="auto",
+            active_model_group="argon",
+            active_model_label="Orchestrator (Argon)",
+        )
+        self.assertEqual(primary_orch_argon["group"], "Orch\u00a0Argon")
+        self.assertAlmostEqual(primary_orch_argon["remaining_pct"], 92.0, places=1)
+
 
 class TestPreferencesAndCache(unittest.TestCase):
     """Test preferences and disk caching mechanics."""
@@ -307,6 +417,38 @@ class TestSQLiteAndSwarmExtraction(unittest.TestCase):
         self.assertEqual(label, "Gemini 4 Hydrogen (XHigh)")
         self.assertEqual(group_id, "gemini")
         self.assertIn("hydrogen", slug)
+
+    def test_detect_active_model_new_models_and_pbtxt_fallback(self):
+        cases = [
+            ("Orchestrator (Carbon)", "gemini"),
+            ("Orchestrator (Argon)", "argon"),
+            ("Gemini 4 Carbon (High)", "gemini"),
+            ("Claude Opus 4.6 (Thinking)", "3p"),
+        ]
+        (self.gemini_dir / "conversations").mkdir(parents=True, exist_ok=True)
+        for i, (model_label, expected_group) in enumerate(cases):
+            cid = f"conv-new-{i}"
+            db_path = self.gemini_dir / "conversations" / f"{cid}.db"
+            con = sqlite3.connect(db_path)
+            cur = con.cursor()
+            cur.execute("CREATE TABLE gen_metadata (idx INTEGER PRIMARY KEY, data BLOB)")
+            raw_bytes = model_label.encode("utf-8")
+            sample_blob = b"prefix\xaa\x01" + bytes([len(raw_bytes)]) + raw_bytes + b"suffix"
+            cur.execute("INSERT INTO gen_metadata VALUES (1, ?)", (sample_blob,))
+            con.commit()
+            con.close()
+
+            slug, label, group_id = self.collector.detect_active_model(cid)
+            self.assertEqual(label, model_label)
+            self.assertEqual(group_id, expected_group)
+            self.assertTrue(slug)
+
+        # Also validate antigravity_state.pbtxt fallback classifies group_id properly
+        state_file = self.gemini_dir / "antigravity_state.pbtxt"
+        state_file.write_text('last_selected_agent_model: "Claude Sonnet 4.6"\n', encoding="utf-8")
+        _, fb_label, fb_group = self.collector.detect_active_model("nonexistent-cid")
+        self.assertEqual(fb_label, "Claude Sonnet 4.6")
+        self.assertEqual(fb_group, "3p")
 
 
 class TestIncrementalTranscriptIndexer(unittest.TestCase):
